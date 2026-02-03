@@ -1,9 +1,10 @@
-[gd_scene load_steps=8 format=3 uid="uid://battlescene001"]
+[gd_scene load_steps=9 format=3 uid="uid://battlescene001"]
 
 [ext_resource type="Script" path="res://scripts/battle/fighter_controller.gd" id="1_fighter"]
 [ext_resource type="Script" path="res://scripts/battle/ai_brain.gd" id="2_aibrain"]
 [ext_resource type="Script" path="res://scripts/battle/coach_system.gd" id="3_coach"]
 [ext_resource type="Script" path="res://scripts/battle/battle_manager.gd" id="4_battle_manager"]
+[ext_resource type="Script" path="res://scripts/battle/stick_figure.gd" id="5_stick"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
 size = Vector2(16, 24)
@@ -49,11 +50,18 @@ base_move_speed = 80.0
 shape = SubResource("RectangleShape2D_body")
 
 [node name="Visual" type="ColorRect" parent="PlayerFighter"]
+visible = false
 offset_left = -8.0
 offset_top = -24.0
 offset_right = 8.0
 offset_bottom = 0.0
 color = Color(0.2, 0.6, 0.9, 1)
+
+[node name="StickFigure" type="Node2D" parent="PlayerFighter"]
+script = ExtResource("5_stick")
+body_color = Color(0.2, 0.6, 0.9, 1)
+head_color = Color(0.3, 0.7, 1.0, 1)
+line_width = 2.0
 
 [node name="Hitbox" type="Area2D" parent="PlayerFighter"]
 collision_layer = 4
@@ -92,11 +100,19 @@ base_move_speed = 75.0
 shape = SubResource("RectangleShape2D_body")
 
 [node name="Visual" type="ColorRect" parent="EnemyFighter"]
+visible = false
 offset_left = -8.0
 offset_top = -24.0
 offset_right = 8.0
 offset_bottom = 0.0
 color = Color(0.9, 0.3, 0.2, 1)
+
+[node name="StickFigure" type="Node2D" parent="EnemyFighter"]
+scale = Vector2(-1, 1)
+script = ExtResource("5_stick")
+body_color = Color(0.9, 0.3, 0.2, 1)
+head_color = Color(1.0, 0.4, 0.3, 1)
+line_width = 2.0
 
 [node name="Hitbox" type="Area2D" parent="EnemyFighter"]
 collision_layer = 4
@@ -196,6 +212,33 @@ offset_left = 160.0
 offset_top = 60.0
 offset_right = 224.0
 offset_bottom = 80.0
+text = ""
+horizontal_alignment = 1
+
+[node name="PlayerMoveLabel" type="Label" parent="UI/BattleUI"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 48.0
+offset_right = 120.0
+offset_bottom = 62.0
+text = ""
+horizontal_alignment = 1
+
+[node name="EnemyMoveLabel" type="Label" parent="UI/BattleUI"]
+layout_mode = 0
+offset_left = 264.0
+offset_top = 48.0
+offset_right = 374.0
+offset_bottom = 62.0
+text = ""
+horizontal_alignment = 1
+
+[node name="ActionLog" type="Label" parent="UI/BattleUI"]
+layout_mode = 0
+offset_left = 140.0
+offset_top = 80.0
+offset_right = 244.0
+offset_bottom = 100.0
 text = ""
 horizontal_alignment = 1
 

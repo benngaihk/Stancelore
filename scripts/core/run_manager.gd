@@ -26,6 +26,11 @@ var pending_battle_difficulty: int = 1
 var pending_battle_is_elite: bool = false
 var pending_battle_is_boss: bool = false
 
+# Battle performance tracking (set by BattleManager)
+var last_battle_max_combo: int = 0
+var last_battle_hp_ratio: float = 1.0
+var last_battle_rewards: Dictionary = {}
+
 # Signals
 signal run_started
 signal run_ended(result: Dictionary)
@@ -120,13 +125,11 @@ func on_battle_won() -> void:
 
 	current_run.record_battle_win(pending_battle_is_elite)
 
-	# Give rewards
-	var gold_reward = 10 + pending_battle_difficulty * 5
-	if pending_battle_is_elite:
-		gold_reward *= 2
-	if pending_battle_is_boss:
-		gold_reward *= 3
-	current_run.add_gold(gold_reward)
+	# Calculate rewards
+	last_battle_rewards = _calculate_battle_rewards()
+
+	# Apply rewards
+	current_run.add_gold(last_battle_rewards.gold)
 
 	# Check for victory (boss defeated)
 	if pending_battle_is_boss:
@@ -134,6 +137,50 @@ func on_battle_won() -> void:
 	else:
 		node_completed.emit(current_run.current_node_id)
 		go_to_map()
+
+
+func _calculate_battle_rewards() -> Dictionary:
+	var rewards = {
+		"gold": 0,
+		"bonus_gold": 0,
+		"combo_bonus": 0,
+		"hp_bonus": 0,
+	}
+
+	# Base gold reward
+	var base_gold = 10 + pending_battle_difficulty * 5
+
+	# Elite/Boss multiplier
+	if pending_battle_is_elite:
+		base_gold = int(base_gold * 2.0)
+	if pending_battle_is_boss:
+		base_gold = int(base_gold * 3.0)
+
+	rewards.gold = base_gold
+
+	# Combo bonus (10% per 5 combo hits)
+	if last_battle_max_combo >= 5:
+		var combo_bonus = int(base_gold * (last_battle_max_combo / 5) * 0.1)
+		rewards.combo_bonus = combo_bonus
+		rewards.bonus_gold += combo_bonus
+
+	# HP bonus (survive with high HP)
+	if last_battle_hp_ratio >= 0.8:
+		var hp_bonus = int(base_gold * 0.25)
+		rewards.hp_bonus = hp_bonus
+		rewards.bonus_gold += hp_bonus
+	elif last_battle_hp_ratio >= 0.5:
+		var hp_bonus = int(base_gold * 0.1)
+		rewards.hp_bonus = hp_bonus
+		rewards.bonus_gold += hp_bonus
+
+	rewards.gold += rewards.bonus_gold
+
+	return rewards
+
+
+func get_last_battle_rewards() -> Dictionary:
+	return last_battle_rewards
 
 
 func on_battle_lost() -> void:

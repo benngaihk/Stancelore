@@ -54,6 +54,7 @@ var current_move: Resource = null  # Move
 # Components
 var ai_brain: AIBrain = null
 var visual: ColorRect = null
+var stick_figure: Node2D = null  # StickFigure
 var hitbox: Area2D = null
 var hurtbox: Area2D = null
 var hp_bar: ProgressBar = null
@@ -87,6 +88,9 @@ func _setup_components() -> void:
 	visual = get_node_or_null("Visual")
 	if visual:
 		_original_color = visual.color
+
+	# Get stick figure
+	stick_figure = get_node_or_null("StickFigure")
 
 	# Get hitbox/hurtbox
 	hitbox = get_node_or_null("Hitbox")
@@ -176,13 +180,17 @@ func _process_idle(_delta: float) -> void:
 	velocity.x = 0
 
 
-func _process_walk(_delta: float) -> void:
+func _process_walk(delta: float) -> void:
 	if target:
 		var direction = sign(target.global_position.x - global_position.x)
 		var speed = base_move_speed * stats.get_attack_speed_multiplier()
 		velocity.x = direction * speed
 		facing_right = direction > 0
 		_update_facing()
+
+	# Update walk animation
+	if stick_figure:
+		_update_stick_figure_pose()
 
 	if state_timer <= 0:
 		change_state(State.IDLE)
@@ -239,12 +247,20 @@ func _process_recovery(_delta: float) -> void:
 
 func _get_attack_duration() -> float:
 	# Faster attacks with higher AGI
-	return base_attack_duration / stats.get_attack_speed_multiplier()
+	var base = base_attack_duration / stats.get_attack_speed_multiplier()
+	# Apply move timing modifiers
+	if current_move:
+		base *= current_move.startup_multiplier
+	return base
 
 
 func _get_recovery_duration() -> float:
 	# Faster recovery with higher WIL
-	return base_recovery_duration / stats.get_recovery_speed()
+	var base = base_recovery_duration / stats.get_recovery_speed()
+	# Apply move recovery modifier
+	if current_move:
+		base *= current_move.recovery_multiplier
+	return base
 
 
 func _get_hit_duration() -> float:
@@ -296,32 +312,71 @@ func _update_facing_to_target() -> void:
 func _update_facing() -> void:
 	if visual:
 		visual.scale.x = 1 if facing_right else -1
+	if stick_figure:
+		stick_figure.scale.x = 1 if facing_right else -1
 
 
 func _update_visual_for_state() -> void:
-	if not visual:
-		return
+	# Update color rect (legacy)
+	if visual:
+		match current_state:
+			State.IDLE:
+				visual.color = _original_color
+			State.WALK:
+				visual.color = _original_color.lightened(0.1)
+			State.ATTACK:
+				if current_move and current_move.color_tint != Color.WHITE:
+					visual.color = current_move.color_tint.lerp(_original_color, 0.4)
+				else:
+					visual.color = Color.RED.lerp(_original_color, 0.3)
+			State.DEFEND:
+				visual.color = Color.BLUE.lerp(_original_color, 0.3)
+			State.EVADE:
+				visual.color = Color.YELLOW.lerp(_original_color, 0.3)
+			State.HIT:
+				visual.color = Color.WHITE
+			State.RECOVERY:
+				visual.color = _original_color.darkened(0.2)
 
-	# Change color based on state (placeholder feedback)
-	match current_state:
-		State.IDLE:
-			visual.color = _original_color
-		State.WALK:
-			visual.color = _original_color.lightened(0.1)
-		State.ATTACK:
-			visual.color = Color.RED.lerp(_original_color, 0.3)
-		State.DEFEND:
-			visual.color = Color.BLUE.lerp(_original_color, 0.3)
-		State.EVADE:
-			visual.color = Color.YELLOW.lerp(_original_color, 0.3)
-		State.HIT:
-			visual.color = Color.WHITE
-		State.RECOVERY:
-			visual.color = _original_color.darkened(0.2)
+	# Update stick figure pose
+	if stick_figure:
+		_update_stick_figure_pose()
 
 
 func can_act() -> bool:
 	return current_state in [State.IDLE, State.WALK]
+
+
+func _update_stick_figure_pose() -> void:
+	if not stick_figure:
+		return
+
+	var StickFigure = preload("res://scripts/battle/stick_figure.gd")
+
+	match current_state:
+		State.IDLE:
+			stick_figure.set_pose(StickFigure.Pose.IDLE)
+		State.WALK:
+			# Alternate between walk poses
+			var walk_phase = int(state_timer * 4) % 2
+			if walk_phase == 0:
+				stick_figure.set_pose(StickFigure.Pose.WALK_1)
+			else:
+				stick_figure.set_pose(StickFigure.Pose.WALK_2)
+		State.ATTACK:
+			if current_move:
+				var pose = stick_figure.get_pose_for_move(current_move.move_name)
+				stick_figure.set_pose(pose)
+			else:
+				stick_figure.set_pose(StickFigure.Pose.JAB)
+		State.DEFEND:
+			stick_figure.set_pose(StickFigure.Pose.DEFEND)
+		State.EVADE:
+			stick_figure.set_pose(StickFigure.Pose.EVADE)
+		State.HIT:
+			stick_figure.set_pose(StickFigure.Pose.HIT)
+		State.RECOVERY:
+			stick_figure.set_pose(StickFigure.Pose.RECOVERY)
 
 
 func has_stamina(cost: float) -> bool:
