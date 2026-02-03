@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(git init:*)",
-      "Bash(git remote add:*)"
+      "Bash(git remote add:*)",
+      "Bash(mdfind:*)",
+      "Bash(brew install:*)",
+      "Bash(godot --headless --import:*)"
     ]
   }
 }

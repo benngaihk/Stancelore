@@ -1,0 +1,253 @@
+[gd_scene load_steps=8 format=3 uid="uid://battlescene001"]
+
+[ext_resource type="Script" path="res://scripts/battle/fighter_controller.gd" id="1_fighter"]
+[ext_resource type="Script" path="res://scripts/battle/ai_brain.gd" id="2_aibrain"]
+[ext_resource type="Script" path="res://scripts/battle/coach_system.gd" id="3_coach"]
+[ext_resource type="Script" path="res://scripts/battle/battle_manager.gd" id="4_battle_manager"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(16, 24)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hitbox"]
+size = Vector2(20, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hurtbox"]
+size = Vector2(14, 22)
+
+[node name="BattleScene" type="Node2D"]
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(192, 108)
+zoom = Vector2(1, 1)
+
+[node name="Ground" type="StaticBody2D" parent="."]
+position = Vector2(192, 200)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground"]
+shape = SubResource("RectangleShape2D_body")
+scale = Vector2(24, 1)
+
+[node name="GroundVisual" type="ColorRect" parent="Ground"]
+offset_left = -192.0
+offset_top = -4.0
+offset_right = 192.0
+offset_bottom = 16.0
+color = Color(0.2, 0.2, 0.25, 1)
+
+[node name="PlayerFighter" type="CharacterBody2D" parent="." groups=["fighters", "player"]]
+position = Vector2(80, 180)
+collision_layer = 1
+collision_mask = 3
+script = ExtResource("1_fighter")
+fighter_name = "Player"
+is_player_controlled = true
+facing_right = true
+attack_range = 35.0
+base_move_speed = 80.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PlayerFighter"]
+shape = SubResource("RectangleShape2D_body")
+
+[node name="Visual" type="ColorRect" parent="PlayerFighter"]
+offset_left = -8.0
+offset_top = -24.0
+offset_right = 8.0
+offset_bottom = 0.0
+color = Color(0.2, 0.6, 0.9, 1)
+
+[node name="Hitbox" type="Area2D" parent="PlayerFighter"]
+collision_layer = 4
+collision_mask = 8
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PlayerFighter/Hitbox"]
+position = Vector2(14, -8)
+shape = SubResource("RectangleShape2D_hitbox")
+
+[node name="Hurtbox" type="Area2D" parent="PlayerFighter"]
+collision_layer = 8
+collision_mask = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PlayerFighter/Hurtbox"]
+position = Vector2(0, -12)
+shape = SubResource("RectangleShape2D_hurtbox")
+
+[node name="AIBrain" type="Node" parent="PlayerFighter"]
+script = ExtResource("2_aibrain")
+decision_interval = 0.4
+
+[node name="EnemyFighter" type="CharacterBody2D" parent="." groups=["fighters", "enemy"]]
+position = Vector2(304, 180)
+collision_layer = 1
+collision_mask = 3
+script = ExtResource("1_fighter")
+fighter_name = "Enemy"
+is_player_controlled = false
+facing_right = false
+attack_range = 35.0
+base_move_speed = 75.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="EnemyFighter"]
+shape = SubResource("RectangleShape2D_body")
+
+[node name="Visual" type="ColorRect" parent="EnemyFighter"]
+offset_left = -8.0
+offset_top = -24.0
+offset_right = 8.0
+offset_bottom = 0.0
+color = Color(0.9, 0.3, 0.2, 1)
+
+[node name="Hitbox" type="Area2D" parent="EnemyFighter"]
+collision_layer = 4
+collision_mask = 8
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="EnemyFighter/Hitbox"]
+position = Vector2(-14, -8)
+shape = SubResource("RectangleShape2D_hitbox")
+
+[node name="Hurtbox" type="Area2D" parent="EnemyFighter"]
+collision_layer = 8
+collision_mask = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="EnemyFighter/Hurtbox"]
+position = Vector2(0, -12)
+shape = SubResource("RectangleShape2D_hurtbox")
+
+[node name="AIBrain" type="Node" parent="EnemyFighter"]
+script = ExtResource("2_aibrain")
+decision_interval = 0.45
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="BattleUI" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PlayerHPBar" type="ProgressBar" parent="UI/BattleUI"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 120.0
+offset_bottom = 20.0
+max_value = 150.0
+value = 150.0
+show_percentage = false
+
+[node name="PlayerStaminaBar" type="ProgressBar" parent="UI/BattleUI"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 22.0
+offset_right = 120.0
+offset_bottom = 28.0
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="PlayerLabel" type="Label" parent="UI/BattleUI"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 30.0
+offset_right = 120.0
+offset_bottom = 44.0
+text = "PLAYER"
+horizontal_alignment = 1
+
+[node name="EnemyHPBar" type="ProgressBar" parent="UI/BattleUI"]
+layout_mode = 0
+offset_left = 264.0
+offset_top = 10.0
+offset_right = 374.0
+offset_bottom = 20.0
+max_value = 150.0
+value = 150.0
+show_percentage = false
+fill_mode = 1
+
+[node name="EnemyStaminaBar" type="ProgressBar" parent="UI/BattleUI"]
+layout_mode = 0
+offset_left = 264.0
+offset_top = 22.0
+offset_right = 374.0
+offset_bottom = 28.0
+max_value = 100.0
+value = 100.0
+show_percentage = false
+fill_mode = 1
+
+[node name="EnemyLabel" type="Label" parent="UI/BattleUI"]
+layout_mode = 0
+offset_left = 264.0
+offset_top = 30.0
+offset_right = 374.0
+offset_bottom = 44.0
+text = "ENEMY"
+horizontal_alignment = 1
+
+[node name="ComboLabel" type="Label" parent="UI/BattleUI"]
+layout_mode = 0
+offset_left = 160.0
+offset_top = 60.0
+offset_right = 224.0
+offset_bottom = 80.0
+text = ""
+horizontal_alignment = 1
+
+[node name="CoachSystem" type="Control" parent="UI/BattleUI"]
+layout_mode = 0
+offset_left = 120.0
+offset_top = 150.0
+offset_right = 264.0
+offset_bottom = 212.0
+script = ExtResource("3_coach")
+cooldown_duration = 5.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/BattleUI/CoachSystem"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="InstructionLabel" type="Label" parent="UI/BattleUI/CoachSystem/VBoxContainer"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+text = "BALANCED"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="UI/BattleUI/CoachSystem/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="AggressiveBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/HBoxContainer"]
+custom_minimum_size = Vector2(40, 20)
+layout_mode = 2
+text = "1:ATK"
+
+[node name="BalancedBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/HBoxContainer"]
+custom_minimum_size = Vector2(40, 20)
+layout_mode = 2
+text = "2:BAL"
+
+[node name="DefensiveBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/HBoxContainer"]
+custom_minimum_size = Vector2(40, 20)
+layout_mode = 2
+text = "3:DEF"
+
+[node name="CooldownBar" type="ProgressBar" parent="UI/BattleUI/CoachSystem/VBoxContainer"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+max_value = 5.0
+value = 0.0
+show_percentage = false
+
+[node name="BattleManager" type="Node" parent="."]
+script = ExtResource("4_battle_manager")
