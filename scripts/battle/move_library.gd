@@ -104,62 +104,6 @@ static func get_training_reward_moves(stats: Resource, count: int = 3) -> Array:
 	return result
 
 
-# Get random shop moves (with chance for affixed versions)
-static func get_shop_moves(floor_number: int, count: int = 3) -> Array:
-	var all_moves = get_basic_moves() + get_skill_moves()
-	var result = []
-
-	# Shuffle and pick random moves
-	all_moves.shuffle()
-
-	for i in range(min(count, all_moves.size())):
-		var base_move = all_moves[i]
-
-		# Chance for affixed version increases with floor
-		var affix_chance = 0.1 + floor_number * 0.05  # 10% base + 5% per floor
-		affix_chance = min(affix_chance, 0.5)  # Cap at 50%
-
-		if randf() < affix_chance:
-			# Create affixed version
-			var affix_tier = 1
-			if floor_number >= 6:
-				affix_tier = 2
-			if floor_number >= 10:
-				affix_tier = 3
-			result.append(MoveClass.create_with_random_affix(base_move, affix_tier))
-		else:
-			result.append(base_move)
-
-	return result
-
-
-# Get price for a move
-static func get_move_price(move: Resource) -> int:
-	var base_price = 0
-
-	# Base price by move type
-	match move.move_type:
-		MoveClass.MoveType.BASIC:
-			base_price = 30
-		MoveClass.MoveType.SKILL:
-			base_price = 60
-		MoveClass.MoveType.ULTIMATE:
-			base_price = 120
-
-	# Increase price based on damage
-	base_price = int(base_price * move.damage_multiplier)
-
-	# Increase price for affixes
-	if move.element_affix != MoveClass.ElementAffix.NONE:
-		base_price = int(base_price * 1.4)
-	if move.effect_affix != MoveClass.EffectAffix.NONE:
-		base_price = int(base_price * 1.3)
-	if move.quality_affix != MoveClass.QualityAffix.NONE:
-		base_price = int(base_price * 1.25)
-
-	return base_price
-
-
 # Create a specific affixed move (for testing/rewards)
 static func create_affixed_move(base_name: String, element: int = 0, effect: int = 0, quality: int = 0) -> Resource:
 	var base_move = get_move_by_name(base_name)

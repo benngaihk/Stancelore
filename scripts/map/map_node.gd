@@ -7,7 +7,6 @@ enum NodeType {
 	ELITE,      # Harder fight, better rewards
 	TRAINING,   # Upgrade stats
 	EVENT,      # Random event
-	SHOP,       # Buy items/services
 	REST,       # Heal HP
 	BOSS        # Boss fight
 }
@@ -41,7 +40,6 @@ func get_type_name() -> String:
 		NodeType.ELITE: return "Elite"
 		NodeType.TRAINING: return "Training"
 		NodeType.EVENT: return "Event"
-		NodeType.SHOP: return "Shop"
 		NodeType.REST: return "Rest"
 		NodeType.BOSS: return "Boss"
 	return "Unknown"
@@ -53,7 +51,6 @@ func get_type_color() -> Color:
 		NodeType.ELITE: return Color(0.9, 0.6, 0.1)   # Orange
 		NodeType.TRAINING: return Color(0.3, 0.7, 0.3) # Green
 		NodeType.EVENT: return Color(0.6, 0.4, 0.8)   # Purple
-		NodeType.SHOP: return Color(0.9, 0.8, 0.2)    # Yellow
 		NodeType.REST: return Color(0.3, 0.6, 0.9)    # Blue
 		NodeType.BOSS: return Color(0.9, 0.2, 0.5)    # Magenta
 	return Color.WHITE
@@ -65,7 +62,6 @@ func get_icon_char() -> String:
 		NodeType.ELITE: return "E"
 		NodeType.TRAINING: return "T"
 		NodeType.EVENT: return "?"
-		NodeType.SHOP: return "$"
 		NodeType.REST: return "R"
 		NodeType.BOSS: return "X"
 	return "?"

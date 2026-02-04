@@ -11,7 +11,6 @@ const SCENE_CHARACTER_SELECT = "res://scenes/ui/character_select.tscn"
 const SCENE_MAP = "res://scenes/map/map_scene.tscn"
 const SCENE_BATTLE = "res://scenes/battle/battle_scene.tscn"
 const SCENE_EVENT = "res://scenes/ui/event_scene.tscn"
-const SCENE_SHOP = "res://scenes/ui/shop_scene.tscn"
 const SCENE_TRAINING = "res://scenes/ui/training_scene.tscn"
 const SCENE_REST = "res://scenes/ui/rest_scene.tscn"
 const SCENE_VICTORY = "res://scenes/ui/victory_scene.tscn"
@@ -106,8 +105,6 @@ func enter_node(node_id: int) -> void:
 			_change_scene(SCENE_TRAINING)
 		MapNodeScript.NodeType.EVENT:
 			_change_scene(SCENE_EVENT)
-		MapNodeScript.NodeType.SHOP:
-			_change_scene(SCENE_SHOP)
 		MapNodeScript.NodeType.REST:
 			_change_scene(SCENE_REST)
 
@@ -130,6 +127,9 @@ func on_battle_won() -> void:
 
 	# Apply rewards
 	current_run.add_gold(last_battle_rewards.gold)
+
+	# Full heal after winning battle
+	current_run.current_hp = current_run.max_hp
 
 	# Check for victory (boss defeated)
 	if pending_battle_is_boss:
