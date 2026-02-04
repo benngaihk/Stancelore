@@ -1,9 +1,10 @@
 extends Node2D
 class_name StickFigure
 ## StickFigure - Simple skeleton visualization for fighter animations
-## Now with hair, clothing, and accessories support
+## Now with hair, clothing, accessories, and PHYSICS support
 
 const CharacterAppearanceClass = preload("res://scripts/battle/character_appearance.gd")
+const VerletPhysicsClass = preload("res://scripts/battle/verlet_physics.gd")
 
 # Body part colors (can be overridden by appearance)
 @export var body_color: Color = Color.WHITE
@@ -17,6 +18,14 @@ var appearance: Resource = null  # CharacterAppearance
 # Flash effect
 var flash_timer: float = 0.0
 var is_flashing: bool = false
+
+# ===== Physics Systems =====
+var hair_chains: Array = []  # Array of HairChain for dynamic hair
+var cloth_mesh = null  # ClothMesh for loose clothing
+var ragdoll: VerletPhysicsClass.RagdollBody = null
+var is_ragdoll_active: bool = false
+var last_velocity: Vector2 = Vector2.ZERO
+var physics_initialized: bool = false
 
 # Body proportions (relative to scale)
 const HEAD_RADIUS = 5.0
@@ -73,22 +82,250 @@ func set_appearance(new_appearance: Resource) -> void:
 		glove_color = appearance.glove_color
 		body_color = appearance.skin_color
 		head_color = appearance.skin_color
+		# Initialize physics after appearance is set
+		call_deferred("_initialize_physics")
 	queue_redraw()
+
+
+func _initialize_physics() -> void:
+	if physics_initialized:
+		return
+	physics_initialized = true
+
+	# Calculate skeleton first
+	_calculate_skeleton()
+
+	# Initialize hair physics based on hair style
+	_setup_hair_physics()
+
+	# Initialize cloth physics for loose clothing
+	_setup_cloth_physics()
+
+	# Initialize ragdoll (inactive by default)
+	_setup_ragdoll()
+
+
+func _setup_hair_physics() -> void:
+	hair_chains.clear()
+
+	if not appearance:
+		return
+
+	var hr = HEAD_RADIUS
+
+	match appearance.hair_style:
+		CharacterAppearanceClass.HairStyle.PONYTAIL:
+			# Single ponytail chain
+			var start = head_pos + Vector2(0, -hr * 0.3)
+			var chain = VerletPhysicsClass.HairChain.new(start, 5, 3.0)
+			chain.gravity = Vector2(0, 120)
+			hair_chains.append(chain)
+
+		CharacterAppearanceClass.HairStyle.LONG:
+			# Multiple strands on sides
+			for side in [-1, 1]:
+				var start = head_pos + Vector2(hr * side, 0)
+				var chain = VerletPhysicsClass.HairChain.new(start, 4, 3.0)
+				chain.gravity = Vector2(0, 100)
+				hair_chains.append(chain)
+			# Back hair
+			var back_start = head_pos + Vector2(0, hr * 0.5)
+			var back_chain = VerletPhysicsClass.HairChain.new(back_start, 5, 2.5)
+			back_chain.gravity = Vector2(0, 110)
+			hair_chains.append(back_chain)
+
+		CharacterAppearanceClass.HairStyle.BRAIDS:
+			# Three braid chains
+			for i in range(3):
+				var offset_x = (i - 1) * 4
+				var start = head_pos + Vector2(offset_x, hr * 0.3)
+				var chain = VerletPhysicsClass.HairChain.new(start, 5, 2.5)
+				chain.gravity = Vector2(0, 90)
+				hair_chains.append(chain)
+
+		CharacterAppearanceClass.HairStyle.MESSY:
+			# Multiple wild strands
+			for i in range(4):
+				var angle = PI * 0.3 + i * PI * 0.15
+				var start = head_pos + Vector2(cos(angle) * hr, -sin(angle) * hr)
+				var chain = VerletPhysicsClass.HairChain.new(start, 3, 2.0)
+				chain.gravity = Vector2(0, 80)
+				chain.wind_strength = 30.0
+				hair_chains.append(chain)
+
+
+func _setup_cloth_physics() -> void:
+	cloth_mesh = null
+
+	if not appearance:
+		return
+
+	# Add cloth for certain clothing types
+	match appearance.top_style:
+		CharacterAppearanceClass.TopStyle.HOODIE:
+			# Hood cloth behind head
+			var top_left = neck_pos + Vector2(-6, -8)
+			cloth_mesh = VerletPhysicsClass.ClothMesh.new(top_left, 4, 3, 4.0)
+			cloth_mesh.gravity = Vector2(0, 60)
+
+		CharacterAppearanceClass.TopStyle.JACKET:
+			# Jacket flaps
+			var top_left = hip_pos + Vector2(-5, 0)
+			cloth_mesh = VerletPhysicsClass.ClothMesh.new(top_left, 3, 3, 3.0)
+			cloth_mesh.gravity = Vector2(0, 80)
+
+
+func _setup_ragdoll() -> void:
+	ragdoll = VerletPhysicsClass.RagdollBody.new()
+
+
+func set_velocity(vel: Vector2) -> void:
+	last_velocity = vel
+
+
+func activate_ragdoll(impact_direction: Vector2 = Vector2.ZERO, impact_force: float = 300.0) -> void:
+	if is_ragdoll_active:
+		return
+
+	# Get current skeleton positions
+	var skeleton_data = {
+		"head": global_position + head_pos,
+		"neck": global_position + neck_pos,
+		"hip": global_position + hip_pos,
+		"left_shoulder": global_position + left_shoulder,
+		"right_shoulder": global_position + right_shoulder,
+		"left_elbow": global_position + left_elbow,
+		"right_elbow": global_position + right_elbow,
+		"left_hand": global_position + left_hand,
+		"right_hand": global_position + right_hand,
+		"left_hip": global_position + left_hip,
+		"right_hip": global_position + right_hip,
+		"left_knee": global_position + left_knee,
+		"right_knee": global_position + right_knee,
+		"left_foot": global_position + left_foot,
+		"right_foot": global_position + right_foot
+	}
+
+	# Initialize ragdoll at ground level (assume feet are on ground)
+	var ground_y = global_position.y + left_foot.y + 5
+	ragdoll.initialize_from_skeleton(skeleton_data, ground_y)
+
+	# Apply impact force
+	var force = impact_direction.normalized() * impact_force
+	force.y -= 100  # Add some upward force
+	ragdoll.activate(force)
+
+	is_ragdoll_active = true
+
+
+func deactivate_ragdoll() -> void:
+	is_ragdoll_active = false
 
 
 func _process(delta: float) -> void:
 	# Update flash effect
 	_update_flash(delta)
 
-	# Interpolate to target pose
-	if not target_pose.is_empty():
-		_lerp_to_pose(delta)
+	# If ragdoll is active, use physics-based positions
+	if is_ragdoll_active:
+		_update_ragdoll(delta)
+	else:
+		# Interpolate to target pose
+		if not target_pose.is_empty():
+			_lerp_to_pose(delta)
 
-	# Calculate joint positions
-	_calculate_skeleton()
+		# Calculate joint positions
+		_calculate_skeleton()
+
+	# Update hair physics
+	_update_hair_physics(delta)
+
+	# Update cloth physics
+	_update_cloth_physics(delta)
 
 	# Trigger redraw
 	queue_redraw()
+
+
+func _update_hair_physics(delta: float) -> void:
+	if hair_chains.is_empty():
+		return
+
+	var hr = HEAD_RADIUS
+
+	for i in range(hair_chains.size()):
+		var chain = hair_chains[i]
+
+		# Determine anchor position based on hair style
+		var anchor = head_pos
+
+		if appearance:
+			match appearance.hair_style:
+				CharacterAppearanceClass.HairStyle.PONYTAIL:
+					anchor = head_pos + Vector2(0, -hr * 0.3)
+				CharacterAppearanceClass.HairStyle.LONG:
+					if i < 2:
+						var side = -1 if i == 0 else 1
+						anchor = head_pos + Vector2(hr * side, 0)
+					else:
+						anchor = head_pos + Vector2(0, hr * 0.5)
+				CharacterAppearanceClass.HairStyle.BRAIDS:
+					var offset_x = (i - 1) * 4
+					anchor = head_pos + Vector2(offset_x, hr * 0.3)
+				CharacterAppearanceClass.HairStyle.MESSY:
+					var angle = PI * 0.3 + i * PI * 0.15
+					anchor = head_pos + Vector2(cos(angle) * hr, -sin(angle) * hr)
+
+		chain.update(delta, anchor, last_velocity)
+
+
+func _update_cloth_physics(delta: float) -> void:
+	if cloth_mesh == null:
+		return
+
+	# Get anchor positions based on clothing type
+	var anchors: Array[Vector2] = []
+
+	if appearance:
+		match appearance.top_style:
+			CharacterAppearanceClass.TopStyle.HOODIE:
+				# Hood attached to neck/head area
+				anchors.append(neck_pos + Vector2(-6, -8))
+				anchors.append(neck_pos + Vector2(-2, -10))
+				anchors.append(neck_pos + Vector2(2, -10))
+				anchors.append(neck_pos + Vector2(6, -8))
+			CharacterAppearanceClass.TopStyle.JACKET:
+				# Jacket bottom
+				anchors.append(hip_pos + Vector2(-5, 0))
+				anchors.append(hip_pos + Vector2(0, 0))
+				anchors.append(hip_pos + Vector2(5, 0))
+
+	cloth_mesh.update(delta, anchors, last_velocity)
+
+
+func _update_ragdoll(delta: float) -> void:
+	if ragdoll == null:
+		return
+
+	ragdoll.update(delta)
+
+	# Get positions from ragdoll (convert to local space)
+	var data = ragdoll.get_skeleton_data()
+	head_pos = data.head - global_position
+	neck_pos = data.neck - global_position
+	hip_pos = data.hip - global_position
+	left_shoulder = data.left_shoulder - global_position
+	right_shoulder = data.right_shoulder - global_position
+	left_elbow = data.left_elbow - global_position
+	right_elbow = data.right_elbow - global_position
+	left_hand = data.left_hand - global_position
+	right_hand = data.right_hand - global_position
+	left_hip = data.left_hip - global_position
+	right_hip = data.right_hip - global_position
+	left_knee = data.left_knee - global_position
+	right_knee = data.right_knee - global_position
+	left_foot = data.left_foot - global_position
+	right_foot = data.right_foot - global_position
 
 
 func _calculate_skeleton() -> void:
@@ -231,8 +468,45 @@ func _draw_with_appearance() -> void:
 	# ===== Draw accessory =====
 	_draw_accessory(acc_col)
 
+	# ===== Draw cloth physics =====
+	_draw_cloth(top_col)
+
 	# ===== Draw arms =====
 	_draw_arms(skin_color, top_col, glove_col, build_mult)
+
+
+func _draw_cloth(cloth_color: Color) -> void:
+	if cloth_mesh == null:
+		return
+
+	# Draw cloth as connected triangles
+	for y in range(cloth_mesh.height - 1):
+		for x in range(cloth_mesh.width - 1):
+			var p1 = cloth_mesh.get_point(x, y)
+			var p2 = cloth_mesh.get_point(x + 1, y)
+			var p3 = cloth_mesh.get_point(x, y + 1)
+			var p4 = cloth_mesh.get_point(x + 1, y + 1)
+
+			if p1 and p2 and p3 and p4:
+				# Draw two triangles to form a quad
+				var color1 = cloth_color
+				var color2 = cloth_color.darkened(0.1)
+
+				# Triangle 1
+				var tri1 = PackedVector2Array([p1.position, p2.position, p3.position])
+				draw_colored_polygon(tri1, color1)
+
+				# Triangle 2
+				var tri2 = PackedVector2Array([p2.position, p4.position, p3.position])
+				draw_colored_polygon(tri2, color2)
+
+	# Draw cloth edges for definition
+	for y in range(cloth_mesh.height):
+		for x in range(cloth_mesh.width - 1):
+			var p1 = cloth_mesh.get_point(x, y)
+			var p2 = cloth_mesh.get_point(x + 1, y)
+			if p1 and p2:
+				draw_line(p1.position, p2.position, cloth_color.darkened(0.2), 0.5)
 
 
 func _get_build_multiplier() -> float:
@@ -343,6 +617,9 @@ func _draw_head(skin_color: Color, build_mult: float) -> void:
 func _draw_hair(hair_color: Color) -> void:
 	var hr = HEAD_RADIUS
 
+	# Check if we have physics-based hair
+	var has_physics_hair = not hair_chains.is_empty()
+
 	match appearance.hair_style:
 		CharacterAppearanceClass.HairStyle.BALD:
 			# No hair - maybe slight shine
@@ -379,41 +656,53 @@ func _draw_hair(hair_color: Color) -> void:
 			draw_colored_polygon(points, hair_color)
 
 		CharacterAppearanceClass.HairStyle.PONYTAIL:
-			# Hair with ponytail
+			# Hair base on head
 			draw_arc(head_pos, hr + 1, PI * 0.7, PI * 0.3, 12, hair_color, 3)
-			# Ponytail behind
-			var tail_start = head_pos + Vector2(0, -hr * 0.3)
-			var tail_end = tail_start + Vector2(8, 6)
-			draw_line(tail_start, tail_end, hair_color, 3)
-			draw_circle(tail_end, 2, hair_color)
+			# Physics-based ponytail
+			if has_physics_hair and hair_chains.size() > 0:
+				_draw_hair_chain(hair_chains[0], hair_color, 3.0)
+			else:
+				# Fallback static ponytail
+				var tail_start = head_pos + Vector2(0, -hr * 0.3)
+				var tail_end = tail_start + Vector2(8, 6)
+				draw_line(tail_start, tail_end, hair_color, 3)
+				draw_circle(tail_end, 2, hair_color)
 
 		CharacterAppearanceClass.HairStyle.LONG:
-			# Long flowing hair
+			# Hair base on head
 			draw_arc(head_pos, hr + 1, PI * 0.8, PI * 0.2, 12, hair_color, 3)
-			# Hair strands down sides
-			draw_line(head_pos + Vector2(-hr, 0), head_pos + Vector2(-hr - 2, 12), hair_color, 3)
-			draw_line(head_pos + Vector2(hr, 0), head_pos + Vector2(hr + 2, 12), hair_color, 3)
-			draw_line(head_pos + Vector2(-hr + 2, 2), head_pos + Vector2(-hr, 10), hair_color, 2)
-			draw_line(head_pos + Vector2(hr - 2, 2), head_pos + Vector2(hr, 10), hair_color, 2)
+			# Physics-based flowing hair
+			if has_physics_hair:
+				for chain in hair_chains:
+					_draw_hair_chain(chain, hair_color, 2.5)
+			else:
+				# Fallback static hair
+				draw_line(head_pos + Vector2(-hr, 0), head_pos + Vector2(-hr - 2, 12), hair_color, 3)
+				draw_line(head_pos + Vector2(hr, 0), head_pos + Vector2(hr + 2, 12), hair_color, 3)
 
 		CharacterAppearanceClass.HairStyle.AFRO:
-			# Big afro
+			# Big afro (no physics - too complex)
 			draw_circle(head_pos + Vector2(0, -3), hr + 5, hair_color)
 			draw_arc(head_pos + Vector2(0, -3), hr + 5, 0, TAU, 20, hair_color.darkened(0.1), 2)
 
 		CharacterAppearanceClass.HairStyle.BRAIDS:
-			# Braided hair
+			# Hair base
 			draw_arc(head_pos, hr + 1, PI * 0.7, PI * 0.3, 12, hair_color, 3)
-			# Multiple braids
-			for i in range(3):
-				var braid_x = head_pos.x + (i - 1) * 5
-				var braid_start = head_pos + Vector2((i - 1) * 4, hr * 0.3)
-				for j in range(4):
-					var by = braid_start.y + j * 3
-					draw_circle(Vector2(braid_x, by), 1.5, hair_color)
+			# Physics-based braids
+			if has_physics_hair:
+				for chain in hair_chains:
+					_draw_braid_chain(chain, hair_color)
+			else:
+				# Fallback static braids
+				for i in range(3):
+					var braid_x = head_pos.x + (i - 1) * 5
+					var braid_start = head_pos + Vector2((i - 1) * 4, hr * 0.3)
+					for j in range(4):
+						var by = braid_start.y + j * 3
+						draw_circle(Vector2(braid_x, by), 1.5, hair_color)
 
 		CharacterAppearanceClass.HairStyle.SLICKED:
-			# Slicked back hair
+			# Slicked back hair (no physics)
 			var points = PackedVector2Array([
 				head_pos + Vector2(-hr - 1, -2),
 				head_pos + Vector2(-hr * 0.5, -hr - 2),
@@ -426,14 +715,48 @@ func _draw_hair(hair_color: Color) -> void:
 			draw_colored_polygon(points, hair_color)
 
 		CharacterAppearanceClass.HairStyle.MESSY:
-			# Messy/wild hair
+			# Hair base
 			draw_arc(head_pos, hr + 2, PI * 0.9, PI * 0.1, 12, hair_color, 4)
-			# Random tufts
-			for i in range(6):
-				var angle = PI * 0.2 + i * PI * 0.13
-				var tuft_start = head_pos + Vector2(cos(angle), -sin(angle)) * hr
-				var tuft_end = tuft_start + Vector2(cos(angle + randf_range(-0.3, 0.3)), -sin(angle)) * (4 + randi() % 4)
-				draw_line(tuft_start, tuft_end, hair_color, 2)
+			# Physics-based wild strands
+			if has_physics_hair:
+				for chain in hair_chains:
+					_draw_hair_chain(chain, hair_color, 2.0)
+			else:
+				# Fallback static tufts
+				for i in range(6):
+					var angle = PI * 0.2 + i * PI * 0.13
+					var tuft_start = head_pos + Vector2(cos(angle), -sin(angle)) * hr
+					var tuft_end = tuft_start + Vector2(cos(angle), -sin(angle)) * 5
+					draw_line(tuft_start, tuft_end, hair_color, 2)
+
+
+func _draw_hair_chain(chain, hair_color: Color, width: float = 3.0) -> void:
+	var positions = chain.get_positions()
+	if positions.size() < 2:
+		return
+
+	# Draw as connected lines with decreasing width
+	for i in range(positions.size() - 1):
+		var t = float(i) / float(positions.size() - 1)
+		var w = width * (1.0 - t * 0.5)  # Taper towards end
+		draw_line(positions[i], positions[i + 1], hair_color, w)
+
+	# Draw end circle
+	draw_circle(positions[positions.size() - 1], width * 0.4, hair_color)
+
+
+func _draw_braid_chain(chain, hair_color: Color) -> void:
+	var positions = chain.get_positions()
+	if positions.size() < 2:
+		return
+
+	# Draw beads along the braid
+	for i in range(positions.size()):
+		var t = float(i) / float(positions.size() - 1)
+		var size = 2.0 * (1.0 - t * 0.3)
+		draw_circle(positions[i], size, hair_color)
+		if i > 0:
+			draw_line(positions[i - 1], positions[i], hair_color, 1.5)
 
 
 func _draw_accessory(acc_color: Color) -> void:

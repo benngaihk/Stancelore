@@ -181,6 +181,10 @@ func _physics_process(delta: float) -> void:
 	global_position.x = clampf(global_position.x, 20.0, 364.0)
 	global_position.y = clampf(global_position.y, 0.0, 200.0)
 
+	# Update stick figure velocity for physics
+	if stick_figure and stick_figure.has_method("set_velocity"):
+		stick_figure.set_velocity(velocity)
+
 	# Update UI bars
 	_update_ui_bars()
 
@@ -240,6 +244,10 @@ func _take_dot_damage(damage: float, color: Color) -> void:
 
 	if hp <= 0:
 		EventBus.fighter_hp_changed.emit(self, old_hp, hp)
+		# Activate ragdoll on defeat from DOT
+		if stick_figure and stick_figure.has_method("activate_ragdoll"):
+			var fall_dir = Vector2(-1 if facing_right else 1, 0)
+			stick_figure.activate_ragdoll(fall_dir, 150.0)
 		EventBus.fighter_defeated.emit(self)
 
 
@@ -592,6 +600,14 @@ func take_damage(damage: float, attacker: FighterController) -> void:
 		hp = max(0, hp - damage)
 		EventBus.fighter_hp_changed.emit(self, old_hp, hp)
 		if hp <= 0:
+			# Activate ragdoll on defeat from chip damage
+			if stick_figure and stick_figure.has_method("activate_ragdoll"):
+				var fall_dir = Vector2.ZERO
+				if attacker:
+					fall_dir = (global_position - attacker.global_position).normalized()
+				else:
+					fall_dir = Vector2(-1 if facing_right else 1, 0)
+				stick_figure.activate_ragdoll(fall_dir, 200.0)
 			EventBus.fighter_defeated.emit(self)
 		return
 
@@ -615,6 +631,21 @@ func take_damage(damage: float, attacker: FighterController) -> void:
 	EventBus.hit_stop_requested.emit(hit_stop_duration)
 	EventBus.screen_shake_requested.emit(shake_intensity, 0.1)
 
+	# Calculate knockback direction and apply
+	var knockback_dir = Vector2.ZERO
+	if attacker:
+		knockback_dir = (global_position - attacker.global_position).normalized()
+	else:
+		knockback_dir = Vector2(-1 if facing_right else 1, 0)
+
+	# Apply knockback force based on damage and move knockback
+	var knockback_strength = 50.0 + damage * 2.0
+	if attacker and attacker.current_move:
+		knockback_strength *= attacker.current_move.knockback_force
+
+	velocity.x += knockback_dir.x * knockback_strength
+	velocity.y -= knockback_strength * 0.3  # Slight upward knockback
+
 	# Visual flash
 	_flash_timer = 0.1
 	if visual:
@@ -627,6 +658,11 @@ func take_damage(damage: float, attacker: FighterController) -> void:
 
 	# Check for defeat
 	if hp <= 0:
+		# Activate ragdoll on defeat
+		if stick_figure and stick_figure.has_method("activate_ragdoll"):
+			var impact_dir = knockback_dir
+			var impact_force = knockback_strength * 3.0
+			stick_figure.activate_ragdoll(impact_dir, impact_force)
 		EventBus.fighter_defeated.emit(self)
 
 
