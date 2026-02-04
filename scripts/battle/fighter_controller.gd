@@ -4,6 +4,7 @@ class_name FighterController
 
 const FighterStatsClass = preload("res://scripts/battle/fighter_stats.gd")
 const MoveClass = preload("res://scripts/battle/move.gd")
+const CharacterAppearanceClass = preload("res://scripts/battle/character_appearance.gd")
 
 enum State {
 	IDLE,
@@ -22,6 +23,7 @@ enum State {
 
 # Stats - now uses FighterStats resource
 @export var stats: Resource = null  # FighterStats
+@export var appearance: Resource = null  # CharacterAppearance
 @export var attack_range: float = 35.0
 @export var base_move_speed: float = 80.0
 
@@ -102,6 +104,15 @@ func _setup_components() -> void:
 
 	# Get stick figure
 	stick_figure = get_node_or_null("StickFigure")
+
+	# Apply appearance to stick figure
+	if stick_figure and appearance:
+		stick_figure.set_appearance(appearance)
+	elif stick_figure and not appearance:
+		# Create random appearance for enemies without one
+		if not is_player_controlled:
+			appearance = CharacterAppearanceClass.create_random()
+			stick_figure.set_appearance(appearance)
 
 	# Get hitbox/hurtbox
 	hitbox = get_node_or_null("Hitbox")
