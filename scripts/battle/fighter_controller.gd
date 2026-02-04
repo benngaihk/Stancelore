@@ -5,6 +5,7 @@ class_name FighterController
 const FighterStatsClass = preload("res://scripts/battle/fighter_stats.gd")
 const MoveClass = preload("res://scripts/battle/move.gd")
 const CharacterAppearanceClass = preload("res://scripts/battle/character_appearance.gd")
+const StickFigureClass = preload("res://scripts/battle/stick_figure.gd")  # DRY: Single preload
 
 enum State {
 	IDLE,
@@ -244,10 +245,8 @@ func _take_dot_damage(damage: float, color: Color) -> void:
 
 	if hp <= 0:
 		EventBus.fighter_hp_changed.emit(self, old_hp, hp)
-		# Activate ragdoll on defeat from DOT
-		if stick_figure and stick_figure.has_method("activate_ragdoll"):
-			var fall_dir = Vector2(-1 if facing_right else 1, 0)
-			stick_figure.activate_ragdoll(fall_dir, 150.0)
+		# DRY: Use helper for ragdoll activation
+		_try_activate_ragdoll(Vector2(-1 if facing_right else 1, 0), 150.0)
 		EventBus.fighter_defeated.emit(self)
 
 
@@ -280,6 +279,12 @@ func apply_defense_reduction(amount: float, duration: float = 3.0) -> void:
 
 func is_stunned() -> bool:
 	return stun_timer > 0
+
+
+# DRY: Helper to activate ragdoll with consistent logic
+func _try_activate_ragdoll(direction: Vector2, force: float = 200.0) -> void:
+	if stick_figure and stick_figure.has_method("activate_ragdoll"):
+		stick_figure.activate_ragdoll(direction, force)
 
 
 func _update_ui_bars() -> void:
@@ -462,32 +467,31 @@ func _update_stick_figure_expression() -> void:
 	if not stick_figure or not stick_figure.has_method("set_expression"):
 		return
 
-	var StickFigure = preload("res://scripts/battle/stick_figure.gd")
-
+	# DRY: Use class constant instead of repeated preload
 	match current_state:
 		State.IDLE:
 			# Check HP for expression
 			if get_hp_ratio() < 0.3:
-				stick_figure.set_expression(StickFigure.Expression.EXHAUSTED, 0.5)
+				stick_figure.set_expression(StickFigureClass.Expression.EXHAUSTED, 0.5)
 			elif get_stamina_ratio() < 0.2:
-				stick_figure.set_expression(StickFigure.Expression.EXHAUSTED, 0.3)
+				stick_figure.set_expression(StickFigureClass.Expression.EXHAUSTED, 0.3)
 			else:
-				stick_figure.set_expression(StickFigure.Expression.NEUTRAL, 0.3)
+				stick_figure.set_expression(StickFigureClass.Expression.NEUTRAL, 0.3)
 		State.WALK:
-			stick_figure.set_expression(StickFigure.Expression.FOCUSED, 0.3)
+			stick_figure.set_expression(StickFigureClass.Expression.FOCUSED, 0.3)
 		State.ATTACK:
-			stick_figure.set_expression(StickFigure.Expression.ANGRY, 0.4)
+			stick_figure.set_expression(StickFigureClass.Expression.ANGRY, 0.4)
 		State.DEFEND:
-			stick_figure.set_expression(StickFigure.Expression.FOCUSED, 0.3)
+			stick_figure.set_expression(StickFigureClass.Expression.FOCUSED, 0.3)
 		State.EVADE:
-			stick_figure.set_expression(StickFigure.Expression.FOCUSED, 0.3)
+			stick_figure.set_expression(StickFigureClass.Expression.FOCUSED, 0.3)
 		State.HIT:
-			stick_figure.set_expression(StickFigure.Expression.HURT, 0.5)
+			stick_figure.set_expression(StickFigureClass.Expression.HURT, 0.5)
 		State.RECOVERY:
 			if get_hp_ratio() < 0.3:
-				stick_figure.set_expression(StickFigure.Expression.EXHAUSTED, 0.3)
+				stick_figure.set_expression(StickFigureClass.Expression.EXHAUSTED, 0.3)
 			else:
-				stick_figure.set_expression(StickFigure.Expression.NEUTRAL, 0.3)
+				stick_figure.set_expression(StickFigureClass.Expression.NEUTRAL, 0.3)
 
 
 func _update_stick_figure_motion() -> void:
@@ -516,32 +520,27 @@ func _update_stick_figure_pose() -> void:
 	if not stick_figure:
 		return
 
-	var StickFigure = preload("res://scripts/battle/stick_figure.gd")
-
+	# DRY: Use class constant instead of repeated preload
 	match current_state:
 		State.IDLE:
-			stick_figure.set_pose(StickFigure.Pose.IDLE)
+			stick_figure.set_pose(StickFigureClass.Pose.IDLE)
 		State.WALK:
 			# Alternate between walk poses
 			var walk_phase = int(state_timer * 4) % 2
-			if walk_phase == 0:
-				stick_figure.set_pose(StickFigure.Pose.WALK_1)
-			else:
-				stick_figure.set_pose(StickFigure.Pose.WALK_2)
+			stick_figure.set_pose(StickFigureClass.Pose.WALK_1 if walk_phase == 0 else StickFigureClass.Pose.WALK_2)
 		State.ATTACK:
 			if current_move:
-				var pose = stick_figure.get_pose_for_move(current_move.move_name)
-				stick_figure.set_pose(pose)
+				stick_figure.set_pose(stick_figure.get_pose_for_move(current_move.move_name))
 			else:
-				stick_figure.set_pose(StickFigure.Pose.JAB)
+				stick_figure.set_pose(StickFigureClass.Pose.JAB)
 		State.DEFEND:
-			stick_figure.set_pose(StickFigure.Pose.DEFEND)
+			stick_figure.set_pose(StickFigureClass.Pose.DEFEND)
 		State.EVADE:
-			stick_figure.set_pose(StickFigure.Pose.EVADE)
+			stick_figure.set_pose(StickFigureClass.Pose.EVADE)
 		State.HIT:
-			stick_figure.set_pose(StickFigure.Pose.HIT)
+			stick_figure.set_pose(StickFigureClass.Pose.HIT)
 		State.RECOVERY:
-			stick_figure.set_pose(StickFigure.Pose.RECOVERY)
+			stick_figure.set_pose(StickFigureClass.Pose.RECOVERY)
 
 
 func has_stamina(cost: float) -> bool:
@@ -643,14 +642,9 @@ func take_damage(damage: float, attacker: FighterController) -> void:
 		hp = max(0, hp - damage)
 		EventBus.fighter_hp_changed.emit(self, old_hp, hp)
 		if hp <= 0:
-			# Activate ragdoll on defeat from chip damage
-			if stick_figure and stick_figure.has_method("activate_ragdoll"):
-				var fall_dir = Vector2.ZERO
-				if attacker:
-					fall_dir = (global_position - attacker.global_position).normalized()
-				else:
-					fall_dir = Vector2(-1 if facing_right else 1, 0)
-				stick_figure.activate_ragdoll(fall_dir, 200.0)
+			# DRY: Use helper for ragdoll activation
+			var fall_dir = (global_position - attacker.global_position).normalized() if attacker else Vector2(-1 if facing_right else 1, 0)
+			_try_activate_ragdoll(fall_dir, 200.0)
 			EventBus.fighter_defeated.emit(self)
 		return
 
@@ -701,11 +695,8 @@ func take_damage(damage: float, attacker: FighterController) -> void:
 
 	# Check for defeat
 	if hp <= 0:
-		# Activate ragdoll on defeat
-		if stick_figure and stick_figure.has_method("activate_ragdoll"):
-			var impact_dir = knockback_dir
-			var impact_force = knockback_strength * 3.0
-			stick_figure.activate_ragdoll(impact_dir, impact_force)
+		# DRY: Use helper for ragdoll activation
+		_try_activate_ragdoll(knockback_dir, knockback_strength * 3.0)
 		EventBus.fighter_defeated.emit(self)
 
 
@@ -742,8 +733,7 @@ func _on_hitbox_area_entered(area: Area2D) -> void:
 
 		# Show victory expression if we defeated them
 		if other_fighter.hp <= 0 and stick_figure and stick_figure.has_method("set_expression"):
-			var StickFigure = preload("res://scripts/battle/stick_figure.gd")
-			stick_figure.set_expression(StickFigure.Expression.VICTORIOUS, 3.0)
+			stick_figure.set_expression(StickFigureClass.Expression.VICTORIOUS, 3.0)
 
 		# Disable hitbox after hit
 		if hitbox:

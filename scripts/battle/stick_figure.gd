@@ -101,6 +101,36 @@ var pose_lerp_speed: float = 15.0
 enum Pose { IDLE, WALK_1, WALK_2, JAB, STRAIGHT, HOOK, UPPERCUT, DEFEND, EVADE, HIT, RECOVERY,
 			FRONT_KICK, LOW_KICK, ROUNDHOUSE, KNEE_STRIKE, ELBOW, BACKFIST }
 
+# Pose data constants (DRY: extracted from _get_pose_data)
+const POSE_DATA = {
+	Pose.IDLE: {"torso": 0.0, "left_upper_arm": 0.3, "left_lower_arm": 0.2, "right_upper_arm": -0.3, "right_lower_arm": -0.2, "left_upper_leg": 0.05, "left_lower_leg": 0.0, "right_upper_leg": -0.05, "right_lower_leg": 0.0},
+	Pose.WALK_1: {"torso": 0.1, "left_upper_arm": 0.6, "left_lower_arm": 0.3, "right_upper_arm": -0.6, "right_lower_arm": -0.3, "left_upper_leg": -0.4, "left_lower_leg": 0.3, "right_upper_leg": 0.4, "right_lower_leg": 0.0},
+	Pose.WALK_2: {"torso": 0.1, "left_upper_arm": -0.6, "left_lower_arm": -0.3, "right_upper_arm": 0.6, "right_lower_arm": 0.3, "left_upper_leg": 0.4, "left_lower_leg": 0.0, "right_upper_leg": -0.4, "right_lower_leg": 0.3},
+	Pose.JAB: {"torso": 0.2, "left_upper_arm": 0.2, "left_lower_arm": 0.3, "right_upper_arm": -1.5, "right_lower_arm": 0.0, "left_upper_leg": 0.2, "left_lower_leg": 0.0, "right_upper_leg": -0.1, "right_lower_leg": 0.0},
+	Pose.STRAIGHT: {"torso": 0.3, "left_upper_arm": 0.4, "left_lower_arm": 0.5, "right_upper_arm": -1.6, "right_lower_arm": 0.0, "left_upper_leg": 0.3, "left_lower_leg": 0.1, "right_upper_leg": -0.2, "right_lower_leg": 0.0},
+	Pose.HOOK: {"torso": 0.4, "left_upper_arm": 0.5, "left_lower_arm": 0.4, "right_upper_arm": -1.2, "right_lower_arm": -1.0, "left_upper_leg": 0.3, "left_lower_leg": 0.0, "right_upper_leg": -0.1, "right_lower_leg": 0.0},
+	Pose.UPPERCUT: {"torso": -0.2, "left_upper_arm": 0.4, "left_lower_arm": 0.3, "right_upper_arm": -0.5, "right_lower_arm": -1.5, "left_upper_leg": 0.3, "left_lower_leg": 0.2, "right_upper_leg": -0.3, "right_lower_leg": 0.0},
+	Pose.DEFEND: {"torso": -0.1, "left_upper_arm": -0.8, "left_lower_arm": -1.2, "right_upper_arm": 0.8, "right_lower_arm": 1.2, "left_upper_leg": 0.1, "left_lower_leg": 0.0, "right_upper_leg": -0.1, "right_lower_leg": 0.0},
+	Pose.EVADE: {"torso": -0.4, "left_upper_arm": 0.5, "left_lower_arm": 0.3, "right_upper_arm": -0.5, "right_lower_arm": -0.3, "left_upper_leg": -0.3, "left_lower_leg": 0.5, "right_upper_leg": 0.2, "right_lower_leg": 0.0},
+	Pose.HIT: {"torso": -0.3, "left_upper_arm": 0.8, "left_lower_arm": 0.5, "right_upper_arm": -0.8, "right_lower_arm": -0.5, "left_upper_leg": 0.0, "left_lower_leg": 0.2, "right_upper_leg": -0.3, "right_lower_leg": 0.3},
+	Pose.RECOVERY: {"torso": 0.0, "left_upper_arm": 0.4, "left_lower_arm": 0.3, "right_upper_arm": -0.4, "right_lower_arm": -0.3, "left_upper_leg": 0.1, "left_lower_leg": 0.0, "right_upper_leg": -0.1, "right_lower_leg": 0.0},
+	Pose.FRONT_KICK: {"torso": -0.1, "left_upper_arm": 0.4, "left_lower_arm": 0.3, "right_upper_arm": -0.4, "right_lower_arm": -0.3, "left_upper_leg": 0.2, "left_lower_leg": 0.1, "right_upper_leg": -1.4, "right_lower_leg": 0.2},
+	Pose.LOW_KICK: {"torso": 0.2, "left_upper_arm": 0.5, "left_lower_arm": 0.3, "right_upper_arm": -0.5, "right_lower_arm": -0.3, "left_upper_leg": 0.1, "left_lower_leg": 0.0, "right_upper_leg": -0.8, "right_lower_leg": -0.3},
+	Pose.ROUNDHOUSE: {"torso": 0.4, "left_upper_arm": 0.6, "left_lower_arm": 0.4, "right_upper_arm": -0.6, "right_lower_arm": -0.4, "left_upper_leg": 0.3, "left_lower_leg": 0.2, "right_upper_leg": -1.2, "right_lower_leg": -0.8},
+	Pose.KNEE_STRIKE: {"torso": 0.1, "left_upper_arm": 0.3, "left_lower_arm": 0.2, "right_upper_arm": -0.3, "right_lower_arm": -0.2, "left_upper_leg": 0.1, "left_lower_leg": 0.0, "right_upper_leg": -1.0, "right_lower_leg": -1.5},
+	Pose.ELBOW: {"torso": 0.3, "left_upper_arm": 0.4, "left_lower_arm": 0.3, "right_upper_arm": -0.8, "right_lower_arm": -1.8, "left_upper_leg": 0.2, "left_lower_leg": 0.0, "right_upper_leg": -0.1, "right_lower_leg": 0.0},
+	Pose.BACKFIST: {"torso": -0.3, "left_upper_arm": 0.8, "left_lower_arm": 0.5, "right_upper_arm": 1.2, "right_lower_arm": 0.8, "left_upper_leg": 0.2, "left_lower_leg": 0.0, "right_upper_leg": -0.2, "right_lower_leg": 0.0}
+}
+
+# Move name to pose mapping (DRY: extracted from get_pose_for_move)
+const MOVE_POSE_MAP = {
+	"Jab": Pose.JAB, "Straight": Pose.STRAIGHT, "Hook": Pose.HOOK, "Uppercut": Pose.UPPERCUT,
+	"Body Blow": Pose.STRAIGHT, "Low Kick": Pose.LOW_KICK, "Front Kick": Pose.FRONT_KICK,
+	"Roundhouse": Pose.ROUNDHOUSE, "Knee Strike": Pose.KNEE_STRIKE, "Elbow": Pose.ELBOW,
+	"Backfist": Pose.BACKFIST, "Flurry": Pose.JAB, "Counter": Pose.STRAIGHT,
+	"Haymaker": Pose.HOOK, "Dempsey Roll": Pose.HOOK, "Gazelle Punch": Pose.UPPERCUT
+}
+
 
 func _ready() -> void:
 	set_pose(Pose.IDLE)
@@ -225,28 +255,25 @@ func set_expression(expr: Expression, duration: float = 0.5) -> void:
 	expression_timer = duration
 
 
+# DRY: Helper to get skeleton data as dictionary (used by ragdoll and afterimages)
+func _get_skeleton_dict(offset: Vector2 = Vector2.ZERO) -> Dictionary:
+	return {
+		"head": head_pos + offset, "neck": neck_pos + offset, "hip": hip_pos + offset,
+		"left_shoulder": left_shoulder + offset, "right_shoulder": right_shoulder + offset,
+		"left_elbow": left_elbow + offset, "right_elbow": right_elbow + offset,
+		"left_hand": left_hand + offset, "right_hand": right_hand + offset,
+		"left_hip": left_hip + offset, "right_hip": right_hip + offset,
+		"left_knee": left_knee + offset, "right_knee": right_knee + offset,
+		"left_foot": left_foot + offset, "right_foot": right_foot + offset
+	}
+
+
 func activate_ragdoll(impact_direction: Vector2 = Vector2.ZERO, impact_force: float = 300.0) -> void:
 	if is_ragdoll_active:
 		return
 
-	# Get current skeleton positions
-	var skeleton_data = {
-		"head": global_position + head_pos,
-		"neck": global_position + neck_pos,
-		"hip": global_position + hip_pos,
-		"left_shoulder": global_position + left_shoulder,
-		"right_shoulder": global_position + right_shoulder,
-		"left_elbow": global_position + left_elbow,
-		"right_elbow": global_position + right_elbow,
-		"left_hand": global_position + left_hand,
-		"right_hand": global_position + right_hand,
-		"left_hip": global_position + left_hip,
-		"right_hip": global_position + right_hip,
-		"left_knee": global_position + left_knee,
-		"right_knee": global_position + right_knee,
-		"left_foot": global_position + left_foot,
-		"right_foot": global_position + right_foot
-	}
+	# Get current skeleton positions (global space)
+	var skeleton_data = _get_skeleton_dict(global_position)
 
 	# Initialize ragdoll at ground level (assume feet are on ground)
 	var ground_y = global_position.y + left_foot.y + 5
@@ -309,37 +336,18 @@ func _update_afterimages(delta: float) -> void:
 
 	if should_record and afterimage_timer > 0.03:  # Record every 30ms
 		afterimage_timer = 0.0
-
-		# Store current pose data
-		var pose_data = {
-			"head": head_pos,
-			"neck": neck_pos,
-			"hip": hip_pos,
-			"left_shoulder": left_shoulder,
-			"right_shoulder": right_shoulder,
-			"left_elbow": left_elbow,
-			"right_elbow": right_elbow,
-			"left_hand": left_hand,
-			"right_hand": right_hand,
-			"left_hip": left_hip,
-			"right_hip": right_hip,
-			"left_knee": left_knee,
-			"right_knee": right_knee,
-			"left_foot": left_foot,
-			"right_foot": right_foot
-		}
-		afterimage_poses.push_front(pose_data)
+		# DRY: Use helper function for skeleton data
+		afterimage_poses.push_front(_get_skeleton_dict())
 		afterimage_positions.push_front(global_position)
 
 		# Limit afterimage count
 		while afterimage_poses.size() > max_afterimages:
 			afterimage_poses.pop_back()
 			afterimage_positions.pop_back()
-	elif not should_record:
+	elif not should_record and afterimage_poses.size() > 0:
 		# Fade out afterimages when not moving fast
-		if afterimage_poses.size() > 0:
-			afterimage_poses.pop_back()
-			afterimage_positions.pop_back()
+		afterimage_poses.pop_back()
+		afterimage_positions.pop_back()
 
 
 func _update_hair_physics(delta: float) -> void:
@@ -859,11 +867,6 @@ func _draw_foot(pos: Vector2, size: float, color: Color, knee_pos: Vector2) -> v
 	draw_circle(pos + Vector2(0, -size * 0.2), size * 0.2, color.lightened(0.2))
 
 
-func _draw_legs(skin_color: Color, pants_color: Color, build_mult: float) -> void:
-	# Legacy function - redirect to polygon version
-	_draw_legs_polygon(skin_color, skin_color.darkened(0.2), pants_color, pants_color.darkened(0.15), build_mult)
-
-
 # MUGEN-style polygon torso rendering
 func _draw_torso_polygon(skin_color: Color, skin_shade: Color, top_color: Color, top_shade: Color, build_mult: float) -> void:
 	var top_width = TORSO_WIDTH_TOP * build_mult
@@ -987,11 +990,6 @@ func _draw_torso_polygon(skin_color: Color, skin_shade: Color, top_color: Color,
 					hip_pos + Vector2(bot_width * 0.1, 0)
 				])
 				draw_colored_polygon(shade_points, top_shade)
-
-
-func _draw_torso(skin_color: Color, top_color: Color, build_mult: float) -> void:
-	# Legacy function - redirect to polygon version
-	_draw_torso_polygon(skin_color, skin_color.darkened(0.2), top_color, top_color.darkened(0.15), build_mult)
 
 
 # MUGEN-style head with detailed expressions
@@ -1121,11 +1119,6 @@ func _draw_eye(pos: Vector2, size: float, narrowed: bool, intense: bool) -> void
 		draw_line(pos + Vector2(-size, 0), pos + Vector2(size, 0), outline_color, 1)
 	else:
 		draw_arc(pos, size, 0, TAU, 12, outline_color, 1)
-
-
-func _draw_head(skin_color: Color, build_mult: float) -> void:
-	# Legacy function - redirect to MUGEN version
-	_draw_head_mugen(skin_color, build_mult)
 
 
 func _draw_hair(hair_color: Color) -> void:
@@ -1363,11 +1356,6 @@ func _draw_arms_polygon(skin_color: Color, skin_shade: Color, top_color: Color, 
 	_draw_joint_highlight(right_shoulder)
 
 
-func _draw_arms(skin_color: Color, top_color: Color, glove_col: Color, build_mult: float) -> void:
-	# Legacy function - redirect to polygon version
-	_draw_arms_polygon(skin_color, skin_color.darkened(0.2), top_color, top_color.darkened(0.15), glove_col, build_mult)
-
-
 func _draw_joint(pos: Vector2, color: Color = Color.WHITE) -> void:
 	draw_circle(pos, 1.5, color)
 
@@ -1422,250 +1410,11 @@ func set_pose(pose: Pose, immediate: bool = false) -> void:
 		right_lower_leg_angle = target_pose.get("right_lower_leg", 0.0)
 
 
+# KISS: Simplified using constant dictionary
 func _get_pose_data(pose: Pose) -> Dictionary:
-	match pose:
-		Pose.IDLE:
-			return {
-				"torso": 0.0,
-				"left_upper_arm": 0.3,
-				"left_lower_arm": 0.2,
-				"right_upper_arm": -0.3,
-				"right_lower_arm": -0.2,
-				"left_upper_leg": 0.05,
-				"left_lower_leg": 0.0,
-				"right_upper_leg": -0.05,
-				"right_lower_leg": 0.0
-			}
-		Pose.WALK_1:
-			return {
-				"torso": 0.1,
-				"left_upper_arm": 0.6,
-				"left_lower_arm": 0.3,
-				"right_upper_arm": -0.6,
-				"right_lower_arm": -0.3,
-				"left_upper_leg": -0.4,
-				"left_lower_leg": 0.3,
-				"right_upper_leg": 0.4,
-				"right_lower_leg": 0.0
-			}
-		Pose.WALK_2:
-			return {
-				"torso": 0.1,
-				"left_upper_arm": -0.6,
-				"left_lower_arm": -0.3,
-				"right_upper_arm": 0.6,
-				"right_lower_arm": 0.3,
-				"left_upper_leg": 0.4,
-				"left_lower_leg": 0.0,
-				"right_upper_leg": -0.4,
-				"right_lower_leg": 0.3
-			}
-		Pose.JAB:
-			return {
-				"torso": 0.2,
-				"left_upper_arm": 0.2,
-				"left_lower_arm": 0.3,
-				"right_upper_arm": -1.5,  # Punch forward
-				"right_lower_arm": 0.0,
-				"left_upper_leg": 0.2,
-				"left_lower_leg": 0.0,
-				"right_upper_leg": -0.1,
-				"right_lower_leg": 0.0
-			}
-		Pose.STRAIGHT:
-			return {
-				"torso": 0.3,
-				"left_upper_arm": 0.4,
-				"left_lower_arm": 0.5,
-				"right_upper_arm": -1.6,  # Strong punch
-				"right_lower_arm": 0.0,
-				"left_upper_leg": 0.3,
-				"left_lower_leg": 0.1,
-				"right_upper_leg": -0.2,
-				"right_lower_leg": 0.0
-			}
-		Pose.HOOK:
-			return {
-				"torso": 0.4,
-				"left_upper_arm": 0.5,
-				"left_lower_arm": 0.4,
-				"right_upper_arm": -1.2,  # Hook angle
-				"right_lower_arm": -1.0,  # Bent arm
-				"left_upper_leg": 0.3,
-				"left_lower_leg": 0.0,
-				"right_upper_leg": -0.1,
-				"right_lower_leg": 0.0
-			}
-		Pose.UPPERCUT:
-			return {
-				"torso": -0.2,  # Lean back slightly
-				"left_upper_arm": 0.4,
-				"left_lower_arm": 0.3,
-				"right_upper_arm": -0.5,  # Arm coming up
-				"right_lower_arm": -1.5,  # Bent for uppercut
-				"left_upper_leg": 0.3,
-				"left_lower_leg": 0.2,
-				"right_upper_leg": -0.3,
-				"right_lower_leg": 0.0
-			}
-		Pose.DEFEND:
-			return {
-				"torso": -0.1,
-				"left_upper_arm": -0.8,  # Arms up
-				"left_lower_arm": -1.2,
-				"right_upper_arm": 0.8,
-				"right_lower_arm": 1.2,
-				"left_upper_leg": 0.1,
-				"left_lower_leg": 0.0,
-				"right_upper_leg": -0.1,
-				"right_lower_leg": 0.0
-			}
-		Pose.EVADE:
-			return {
-				"torso": -0.4,  # Lean back
-				"left_upper_arm": 0.5,
-				"left_lower_arm": 0.3,
-				"right_upper_arm": -0.5,
-				"right_lower_arm": -0.3,
-				"left_upper_leg": -0.3,
-				"left_lower_leg": 0.5,
-				"right_upper_leg": 0.2,
-				"right_lower_leg": 0.0
-			}
-		Pose.HIT:
-			return {
-				"torso": -0.3,  # Stagger back
-				"left_upper_arm": 0.8,
-				"left_lower_arm": 0.5,
-				"right_upper_arm": -0.8,
-				"right_lower_arm": -0.5,
-				"left_upper_leg": 0.0,
-				"left_lower_leg": 0.2,
-				"right_upper_leg": -0.3,
-				"right_lower_leg": 0.3
-			}
-		Pose.RECOVERY:
-			return {
-				"torso": 0.0,
-				"left_upper_arm": 0.4,
-				"left_lower_arm": 0.3,
-				"right_upper_arm": -0.4,
-				"right_lower_arm": -0.3,
-				"left_upper_leg": 0.1,
-				"left_lower_leg": 0.0,
-				"right_upper_leg": -0.1,
-				"right_lower_leg": 0.0
-			}
-		Pose.FRONT_KICK:
-			return {
-				"torso": -0.1,
-				"left_upper_arm": 0.4,
-				"left_lower_arm": 0.3,
-				"right_upper_arm": -0.4,
-				"right_lower_arm": -0.3,
-				"left_upper_leg": 0.2,
-				"left_lower_leg": 0.1,
-				"right_upper_leg": -1.4,  # Kick forward
-				"right_lower_leg": 0.2
-			}
-		Pose.LOW_KICK:
-			return {
-				"torso": 0.2,
-				"left_upper_arm": 0.5,
-				"left_lower_arm": 0.3,
-				"right_upper_arm": -0.5,
-				"right_lower_arm": -0.3,
-				"left_upper_leg": 0.1,
-				"left_lower_leg": 0.0,
-				"right_upper_leg": -0.8,  # Low kick angle
-				"right_lower_leg": -0.3
-			}
-		Pose.ROUNDHOUSE:
-			return {
-				"torso": 0.4,
-				"left_upper_arm": 0.6,
-				"left_lower_arm": 0.4,
-				"right_upper_arm": -0.6,
-				"right_lower_arm": -0.4,
-				"left_upper_leg": 0.3,
-				"left_lower_leg": 0.2,
-				"right_upper_leg": -1.2,  # High roundhouse
-				"right_lower_leg": -0.8
-			}
-		Pose.KNEE_STRIKE:
-			return {
-				"torso": 0.1,
-				"left_upper_arm": 0.3,
-				"left_lower_arm": 0.2,
-				"right_upper_arm": -0.3,
-				"right_lower_arm": -0.2,
-				"left_upper_leg": 0.1,
-				"left_lower_leg": 0.0,
-				"right_upper_leg": -1.0,  # Knee up
-				"right_lower_leg": -1.5   # Folded leg
-			}
-		Pose.ELBOW:
-			return {
-				"torso": 0.3,
-				"left_upper_arm": 0.4,
-				"left_lower_arm": 0.3,
-				"right_upper_arm": -0.8,  # Elbow angle
-				"right_lower_arm": -1.8,  # Tight fold
-				"left_upper_leg": 0.2,
-				"left_lower_leg": 0.0,
-				"right_upper_leg": -0.1,
-				"right_lower_leg": 0.0
-			}
-		Pose.BACKFIST:
-			return {
-				"torso": -0.3,  # Twist back
-				"left_upper_arm": 0.8,
-				"left_lower_arm": 0.5,
-				"right_upper_arm": 1.2,   # Backswing
-				"right_lower_arm": 0.8,
-				"left_upper_leg": 0.2,
-				"left_lower_leg": 0.0,
-				"right_upper_leg": -0.2,
-				"right_lower_leg": 0.0
-			}
-		_:
-			return {}
+	return POSE_DATA.get(pose, {})
 
 
-# Get pose for a specific move name
+# KISS: Simplified using constant dictionary
 func get_pose_for_move(move_name: String) -> Pose:
-	match move_name:
-		"Jab":
-			return Pose.JAB
-		"Straight":
-			return Pose.STRAIGHT
-		"Hook":
-			return Pose.HOOK
-		"Uppercut":
-			return Pose.UPPERCUT
-		"Body Blow":
-			return Pose.STRAIGHT
-		"Low Kick":
-			return Pose.LOW_KICK
-		"Front Kick":
-			return Pose.FRONT_KICK
-		"Roundhouse":
-			return Pose.ROUNDHOUSE
-		"Knee Strike":
-			return Pose.KNEE_STRIKE
-		"Elbow":
-			return Pose.ELBOW
-		"Backfist":
-			return Pose.BACKFIST
-		"Flurry":
-			return Pose.JAB
-		"Counter":
-			return Pose.STRAIGHT
-		"Haymaker":
-			return Pose.HOOK
-		"Dempsey Roll":
-			return Pose.HOOK
-		"Gazelle Punch":
-			return Pose.UPPERCUT
-		_:
-			return Pose.JAB  # Default attack pose
+	return MOVE_POSE_MAP.get(move_name, Pose.JAB)
