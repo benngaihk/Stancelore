@@ -492,6 +492,8 @@ func take_damage(damage: float, attacker: FighterController) -> void:
 	_flash_timer = 0.1
 	if visual:
 		visual.color = Color.WHITE
+	if stick_figure and stick_figure.has_method("flash"):
+		stick_figure.flash()
 
 	# Change to hit state
 	change_state(State.HIT)

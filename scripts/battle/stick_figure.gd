@@ -6,7 +6,12 @@ class_name StickFigure
 # Body part colors
 @export var body_color: Color = Color.WHITE
 @export var head_color: Color = Color.WHITE
+@export var glove_color: Color = Color.RED
 @export var line_width: float = 2.0
+
+# Flash effect
+var flash_timer: float = 0.0
+var is_flashing: bool = false
 
 # Body proportions (relative to scale)
 const HEAD_RADIUS = 5.0
@@ -57,6 +62,9 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	# Update flash effect
+	_update_flash(delta)
+
 	# Interpolate to target pose
 	if not target_pose.is_empty():
 		_lerp_to_pose(delta)
@@ -115,34 +123,74 @@ func _calculate_skeleton() -> void:
 
 
 func _draw() -> void:
-	# Draw head
-	draw_circle(head_pos, HEAD_RADIUS, head_color)
-	draw_arc(head_pos, HEAD_RADIUS, 0, TAU, 16, body_color, line_width)
+	var draw_color = body_color
+	var head_draw_color = head_color
+
+	# Flash white when hit
+	if is_flashing:
+		draw_color = Color.WHITE
+		head_draw_color = Color.WHITE
+
+	# Draw shadow (offset slightly)
+	var shadow_offset = Vector2(2, 2)
+	var shadow_color = Color(0, 0, 0, 0.3)
+	draw_line(neck_pos + shadow_offset, hip_pos + shadow_offset, shadow_color, line_width)
+	draw_line(left_shoulder + shadow_offset, left_elbow + shadow_offset, shadow_color, line_width)
+	draw_line(left_elbow + shadow_offset, left_hand + shadow_offset, shadow_color, line_width)
+	draw_line(right_shoulder + shadow_offset, right_elbow + shadow_offset, shadow_color, line_width)
+	draw_line(right_elbow + shadow_offset, right_hand + shadow_offset, shadow_color, line_width)
+
+	# Draw legs (behind body)
+	draw_line(left_hip, left_knee, draw_color, line_width)
+	draw_line(left_knee, left_foot, draw_color, line_width)
+	draw_line(right_hip, right_knee, draw_color, line_width)
+	draw_line(right_knee, right_foot, draw_color, line_width)
+
+	# Draw feet
+	draw_circle(left_foot, 2.0, draw_color)
+	draw_circle(right_foot, 2.0, draw_color)
 
 	# Draw torso
-	draw_line(neck_pos, hip_pos, body_color, line_width)
+	draw_line(neck_pos, hip_pos, draw_color, line_width + 1)
+
+	# Draw head
+	draw_circle(head_pos, HEAD_RADIUS, head_draw_color)
+	draw_arc(head_pos, HEAD_RADIUS, 0, TAU, 16, draw_color, line_width)
 
 	# Draw arms
-	draw_line(left_shoulder, left_elbow, body_color, line_width)
-	draw_line(left_elbow, left_hand, body_color, line_width)
-	draw_line(right_shoulder, right_elbow, body_color, line_width)
-	draw_line(right_elbow, right_hand, body_color, line_width)
+	draw_line(left_shoulder, left_elbow, draw_color, line_width)
+	draw_line(left_elbow, left_hand, draw_color, line_width)
+	draw_line(right_shoulder, right_elbow, draw_color, line_width)
+	draw_line(right_elbow, right_hand, draw_color, line_width)
 
-	# Draw legs
-	draw_line(left_hip, left_knee, body_color, line_width)
-	draw_line(left_knee, left_foot, body_color, line_width)
-	draw_line(right_hip, right_knee, body_color, line_width)
-	draw_line(right_knee, right_foot, body_color, line_width)
+	# Draw boxing gloves (hands)
+	var glove_draw_color = glove_color if not is_flashing else Color.WHITE
+	draw_circle(left_hand, 3.5, glove_draw_color)
+	draw_circle(right_hand, 3.5, glove_draw_color)
 
 	# Draw joints
-	_draw_joint(left_elbow)
-	_draw_joint(right_elbow)
-	_draw_joint(left_knee)
-	_draw_joint(right_knee)
+	_draw_joint(left_elbow, draw_color)
+	_draw_joint(right_elbow, draw_color)
+	_draw_joint(left_knee, draw_color)
+	_draw_joint(right_knee, draw_color)
+	_draw_joint(left_shoulder, draw_color)
+	_draw_joint(right_shoulder, draw_color)
 
 
-func _draw_joint(pos: Vector2) -> void:
-	draw_circle(pos, 1.5, body_color)
+func _draw_joint(pos: Vector2, color: Color = Color.WHITE) -> void:
+	draw_circle(pos, 1.5, color)
+
+
+func flash() -> void:
+	is_flashing = true
+	flash_timer = 0.1
+
+
+func _update_flash(delta: float) -> void:
+	if is_flashing:
+		flash_timer -= delta
+		if flash_timer <= 0:
+			is_flashing = false
 
 
 func _lerp_to_pose(delta: float) -> void:
