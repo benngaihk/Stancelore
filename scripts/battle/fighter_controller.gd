@@ -451,9 +451,52 @@ func _update_visual_for_state() -> void:
 			State.RECOVERY:
 				visual.color = _original_color.darkened(0.2)
 
-	# Update stick figure pose
+	# Update stick figure pose and MUGEN-style effects
 	if stick_figure:
 		_update_stick_figure_pose()
+		_update_stick_figure_expression()
+		_update_stick_figure_motion()
+
+
+func _update_stick_figure_expression() -> void:
+	if not stick_figure or not stick_figure.has_method("set_expression"):
+		return
+
+	var StickFigure = preload("res://scripts/battle/stick_figure.gd")
+
+	match current_state:
+		State.IDLE:
+			# Check HP for expression
+			if get_hp_ratio() < 0.3:
+				stick_figure.set_expression(StickFigure.Expression.EXHAUSTED, 0.5)
+			elif get_stamina_ratio() < 0.2:
+				stick_figure.set_expression(StickFigure.Expression.EXHAUSTED, 0.3)
+			else:
+				stick_figure.set_expression(StickFigure.Expression.NEUTRAL, 0.3)
+		State.WALK:
+			stick_figure.set_expression(StickFigure.Expression.FOCUSED, 0.3)
+		State.ATTACK:
+			stick_figure.set_expression(StickFigure.Expression.ANGRY, 0.4)
+		State.DEFEND:
+			stick_figure.set_expression(StickFigure.Expression.FOCUSED, 0.3)
+		State.EVADE:
+			stick_figure.set_expression(StickFigure.Expression.FOCUSED, 0.3)
+		State.HIT:
+			stick_figure.set_expression(StickFigure.Expression.HURT, 0.5)
+		State.RECOVERY:
+			if get_hp_ratio() < 0.3:
+				stick_figure.set_expression(StickFigure.Expression.EXHAUSTED, 0.3)
+			else:
+				stick_figure.set_expression(StickFigure.Expression.NEUTRAL, 0.3)
+
+
+func _update_stick_figure_motion() -> void:
+	if not stick_figure or not stick_figure.has_method("set_attacking"):
+		return
+
+	# Set attacking state for motion effects (afterimages, speed lines)
+	var attack_dir = Vector2(1 if facing_right else -1, 0)
+	stick_figure.set_attacking(current_state == State.ATTACK, attack_dir)
 
 
 func can_act() -> bool:
@@ -696,6 +739,11 @@ func _on_hitbox_area_entered(area: Area2D) -> void:
 		# Apply move affix effects
 		if current_move:
 			_apply_affix_effects(other_fighter, damage)
+
+		# Show victory expression if we defeated them
+		if other_fighter.hp <= 0 and stick_figure and stick_figure.has_method("set_expression"):
+			var StickFigure = preload("res://scripts/battle/stick_figure.gd")
+			stick_figure.set_expression(StickFigure.Expression.VICTORIOUS, 3.0)
 
 		# Disable hitbox after hit
 		if hitbox:
