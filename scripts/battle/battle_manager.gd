@@ -128,6 +128,29 @@ func _setup_run_battle(run: Resource) -> void:
 
 
 func _setup_standalone_battle() -> void:
+	var MoveLibrary = preload("res://scripts/battle/move_library.gd")
+
+	# Check if demo settings are active
+	if GameManager.demo_settings_active:
+		# Apply demo settings
+		if player_fighter and GameManager.demo_player_stats:
+			player_fighter.stats = GameManager.demo_player_stats
+			player_fighter._initialize_stats()
+			if player_fighter.ai_brain and GameManager.demo_player_moves.size() > 0:
+				player_fighter.ai_brain.set_equipped_moves(GameManager.demo_player_moves)
+			else:
+				player_fighter.ai_brain.set_equipped_moves(MoveLibrary.get_basic_moves())
+
+		if enemy_fighter and GameManager.demo_enemy_stats:
+			enemy_fighter.stats = GameManager.demo_enemy_stats
+			enemy_fighter._initialize_stats()
+			if enemy_fighter.ai_brain and GameManager.demo_enemy_moves.size() > 0:
+				enemy_fighter.ai_brain.set_equipped_moves(GameManager.demo_enemy_moves)
+			else:
+				enemy_fighter.ai_brain.set_equipped_moves(MoveLibrary.get_basic_moves())
+
+		return
+
 	# Use default balanced stats for both
 	if player_fighter and player_fighter.stats == null:
 		player_fighter.stats = FighterStatsScript.create_balanced()
@@ -136,6 +159,34 @@ func _setup_standalone_battle() -> void:
 	if enemy_fighter and enemy_fighter.stats == null:
 		enemy_fighter.stats = FighterStatsScript.create_balanced()
 		enemy_fighter._initialize_stats()
+
+	# Set up default moves for both fighters
+	var default_moves = MoveLibrary.get_basic_moves()
+
+	if player_fighter and player_fighter.ai_brain:
+		player_fighter.ai_brain.set_equipped_moves(default_moves)
+
+	if enemy_fighter and enemy_fighter.ai_brain:
+		enemy_fighter.ai_brain.set_equipped_moves(default_moves)
+
+
+func apply_settings(player_stats: Resource, player_moves: Array, enemy_stats: Resource, enemy_moves: Array) -> void:
+	# Apply to player
+	if player_fighter:
+		player_fighter.stats = player_stats
+		player_fighter._initialize_stats()
+		if player_fighter.ai_brain and player_moves.size() > 0:
+			player_fighter.ai_brain.set_equipped_moves(player_moves)
+
+	# Apply to enemy
+	if enemy_fighter:
+		enemy_fighter.stats = enemy_stats
+		enemy_fighter._initialize_stats()
+		if enemy_fighter.ai_brain and enemy_moves.size() > 0:
+			enemy_fighter.ai_brain.set_equipped_moves(enemy_moves)
+
+	# Update UI bars
+	_setup_ui_bars()
 
 
 func _setup_ui_bars() -> void:

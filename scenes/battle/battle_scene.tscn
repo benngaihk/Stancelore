@@ -1,10 +1,11 @@
-[gd_scene load_steps=9 format=3 uid="uid://battlescene001"]
+[gd_scene load_steps=10 format=3 uid="uid://battlescene001"]
 
 [ext_resource type="Script" path="res://scripts/battle/fighter_controller.gd" id="1_fighter"]
 [ext_resource type="Script" path="res://scripts/battle/ai_brain.gd" id="2_aibrain"]
 [ext_resource type="Script" path="res://scripts/battle/coach_system.gd" id="3_coach"]
 [ext_resource type="Script" path="res://scripts/battle/battle_manager.gd" id="4_battle_manager"]
 [ext_resource type="Script" path="res://scripts/battle/stick_figure.gd" id="5_stick"]
+[ext_resource type="Script" path="res://scripts/ui/demo_settings.gd" id="6_demo_settings"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
 size = Vector2(16, 24)
@@ -316,3 +317,11 @@ show_percentage = false
 
 [node name="BattleManager" type="Node" parent="."]
 script = ExtResource("4_battle_manager")
+
+[node name="DemoSettings" type="Control" parent="UI/BattleUI"]
+layout_mode = 0
+offset_left = 130.0
+offset_top = 5.0
+offset_right = 254.0
+offset_bottom = 25.0
+script = ExtResource("6_demo_settings")

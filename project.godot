@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Stancelore"
 config/description="AI Fighting Roguelike - Coach your fighter to victory"
-run/main_scene="res://scenes/ui/main_menu.tscn"
+run/main_scene="res://scenes/battle/battle_scene.tscn"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 config/icon="res://icon.svg"
 
