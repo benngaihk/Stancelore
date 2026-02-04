@@ -2,6 +2,7 @@ extends Control
 ## ShopScene - Buy items, training, and moves
 
 const MoveLibrary = preload("res://scripts/battle/move_library.gd")
+const MoveClass = preload("res://scripts/battle/move.gd")
 
 @onready var gold_label: Label = $VBoxContainer/GoldLabel
 @onready var tabs: TabContainer = $VBoxContainer/TabContainer
@@ -39,27 +40,31 @@ func _generate_move_shop() -> void:
 	if run == null:
 		return
 
-	# Get moves player doesn't have
-	var all_moves = MoveLibrary.get_basic_moves() + MoveLibrary.get_skill_moves()
+	# Get current floor for affix tier
+	var floor_number = run.visited_nodes.size() if run.visited_nodes else 1
+
+	# Get shop moves (may include affixed versions)
+	var shop_moves = MoveLibrary.get_shop_moves(floor_number, 5)
+
+	# Filter out moves player already has
 	var owned_names = []
 	for m in run.available_moves:
-		owned_names.append(m.move_name)
+		# Check base name for affixed moves
+		var check_name = m.base_name if m.base_name else m.move_name
+		owned_names.append(check_name)
 
 	available_moves.clear()
-	for move in all_moves:
-		if not owned_names.has(move.move_name):
-			# Calculate price based on move type and power
-			var base_price = 40
-			if move.move_type == 1:  # SKILL
-				base_price = 80
-			base_price += int(move.damage_multiplier * 20)
+	for move in shop_moves:
+		var check_name = move.base_name if move.base_name else move.move_name
+		if not owned_names.has(check_name) or move.has_affix():
+			# Allow affixed versions even if base is owned
+			var price = MoveLibrary.get_move_price(move)
 			available_moves.append({
 				"move": move,
-				"cost": base_price
+				"cost": price
 			})
 
-	# Shuffle and pick 3
-	available_moves.shuffle()
+	# Limit to 3 items
 	if available_moves.size() > 3:
 		available_moves = available_moves.slice(0, 3)
 
@@ -151,6 +156,10 @@ func _create_moves_tab() -> ScrollContainer:
 			var name_label = Label.new()
 			var type_str = ["BASIC", "SKILL", "ULTIMATE"][move.move_type]
 			name_label.text = move.move_name + " [" + type_str + "] - " + str(cost) + "g"
+
+			# Color the name based on affixes
+			if move.has_affix():
+				name_label.add_theme_color_override("font_color", move.color_tint)
 			info_vbox.add_child(name_label)
 
 			var desc_label = Label.new()
@@ -162,6 +171,15 @@ func _create_moves_tab() -> ScrollContainer:
 			stats_label.text = "DMG: x%.1f | Stamina: %.0f" % [move.damage_multiplier, move.stamina_cost]
 			stats_label.modulate = Color(0.6, 0.8, 0.6)
 			info_vbox.add_child(stats_label)
+
+			# Show affix effects if any
+			if move.has_affix():
+				var affix_desc = MoveClass.get_affix_description(move)
+				if not affix_desc.is_empty():
+					var affix_label = Label.new()
+					affix_label.text = affix_desc
+					affix_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4))
+					info_vbox.add_child(affix_label)
 
 			hbox.add_child(info_vbox)
 

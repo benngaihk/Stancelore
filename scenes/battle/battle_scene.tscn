@@ -244,10 +244,10 @@ horizontal_alignment = 1
 
 [node name="CoachSystem" type="Control" parent="UI/BattleUI"]
 layout_mode = 0
-offset_left = 120.0
-offset_top = 150.0
-offset_right = 264.0
-offset_bottom = 212.0
+offset_left = 100.0
+offset_top = 140.0
+offset_right = 284.0
+offset_bottom = 216.0
 script = ExtResource("3_coach")
 cooldown_duration = 5.0
 
@@ -258,35 +258,57 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 2
 
 [node name="InstructionLabel" type="Label" parent="UI/BattleUI/CoachSystem/VBoxContainer"]
-custom_minimum_size = Vector2(0, 16)
+custom_minimum_size = Vector2(0, 14)
 layout_mode = 2
 text = "BALANCED"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="HBoxContainer" type="HBoxContainer" parent="UI/BattleUI/CoachSystem/VBoxContainer"]
+[node name="Row1" type="HBoxContainer" parent="UI/BattleUI/CoachSystem/VBoxContainer"]
 layout_mode = 2
 alignment = 1
+theme_override_constants/separation = 2
 
-[node name="AggressiveBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/HBoxContainer"]
-custom_minimum_size = Vector2(40, 20)
+[node name="AggressiveBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/Row1"]
+custom_minimum_size = Vector2(56, 18)
 layout_mode = 2
 text = "1:ATK"
 
-[node name="BalancedBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/HBoxContainer"]
-custom_minimum_size = Vector2(40, 20)
+[node name="BalancedBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/Row1"]
+custom_minimum_size = Vector2(56, 18)
 layout_mode = 2
 text = "2:BAL"
 
-[node name="DefensiveBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/HBoxContainer"]
-custom_minimum_size = Vector2(40, 20)
+[node name="DefensiveBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/Row1"]
+custom_minimum_size = Vector2(56, 18)
 layout_mode = 2
 text = "3:DEF"
 
+[node name="Row2" type="HBoxContainer" parent="UI/BattleUI/CoachSystem/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 2
+
+[node name="EvasiveBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/Row2"]
+custom_minimum_size = Vector2(56, 18)
+layout_mode = 2
+text = "4:EVD"
+
+[node name="CounterBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/Row2"]
+custom_minimum_size = Vector2(56, 18)
+layout_mode = 2
+text = "5:CTR"
+
+[node name="PressureBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/Row2"]
+custom_minimum_size = Vector2(56, 18)
+layout_mode = 2
+text = "6:PRS"
+
 [node name="CooldownBar" type="ProgressBar" parent="UI/BattleUI/CoachSystem/VBoxContainer"]
-custom_minimum_size = Vector2(0, 10)
+custom_minimum_size = Vector2(0, 8)
 layout_mode = 2
 max_value = 5.0
 value = 0.0

@@ -64,6 +64,17 @@ var stamina_bar: ProgressBar = null
 var _flash_timer: float = 0.0
 var _original_color: Color = Color.WHITE
 
+# Status effects from move affixes
+var burn_timer: float = 0.0
+var burn_dps: float = 0.0
+var bleed_timer: float = 0.0
+var bleed_dps: float = 0.0
+var slow_timer: float = 0.0
+var slow_amount: float = 0.0
+var stun_timer: float = 0.0
+var defense_reduction: float = 0.0
+var defense_reduction_timer: float = 0.0
+
 
 func _ready() -> void:
 	_initialize_stats()
@@ -123,6 +134,9 @@ func _physics_process(delta: float) -> void:
 	if not GameManager.is_battle_active():
 		return
 
+	# Process status effects
+	_process_status_effects(delta)
+
 	# Regenerate stamina
 	_regenerate_stamina(delta)
 
@@ -169,6 +183,86 @@ func _regenerate_stamina(delta: float) -> void:
 		stamina = min(max_stamina, stamina + 5.0 * delta)
 
 
+func _process_status_effects(delta: float) -> void:
+	# Process burn damage
+	if burn_timer > 0:
+		burn_timer -= delta
+		var burn_damage = burn_dps * delta
+		_take_dot_damage(burn_damage, Color.ORANGE)
+		if burn_timer <= 0:
+			burn_dps = 0.0
+
+	# Process bleed damage
+	if bleed_timer > 0:
+		bleed_timer -= delta
+		var bleed_damage = bleed_dps * delta
+		_take_dot_damage(bleed_damage, Color.DARK_RED)
+		if bleed_timer <= 0:
+			bleed_dps = 0.0
+
+	# Process slow (just decrements timer, effect applied in movement)
+	if slow_timer > 0:
+		slow_timer -= delta
+		if slow_timer <= 0:
+			slow_amount = 0.0
+
+	# Process stun
+	if stun_timer > 0:
+		stun_timer -= delta
+		# While stunned, can't act (handled in can_act())
+
+	# Process defense reduction
+	if defense_reduction_timer > 0:
+		defense_reduction_timer -= delta
+		if defense_reduction_timer <= 0:
+			defense_reduction = 0.0
+
+
+func _take_dot_damage(damage: float, color: Color) -> void:
+	var old_hp = hp
+	hp = max(0, hp - damage)
+
+	# Visual feedback (subtle flash)
+	if visual:
+		visual.color = color.lerp(_original_color, 0.7)
+		_flash_timer = 0.05
+
+	if hp <= 0:
+		EventBus.fighter_hp_changed.emit(self, old_hp, hp)
+		EventBus.fighter_defeated.emit(self)
+
+
+func apply_burn(dps: float, duration: float = 3.0) -> void:
+	burn_dps = dps
+	burn_timer = duration
+
+
+func apply_bleed(dps: float, duration: float = 4.0) -> void:
+	bleed_dps = dps
+	bleed_timer = duration
+
+
+func apply_slow(amount: float, duration: float = 2.0) -> void:
+	slow_amount = amount
+	slow_timer = duration
+
+
+func apply_stun(duration: float = 0.5) -> void:
+	stun_timer = duration
+	# Force to idle if stunned
+	if current_state not in [State.HIT, State.RECOVERY]:
+		change_state(State.HIT)
+
+
+func apply_defense_reduction(amount: float, duration: float = 3.0) -> void:
+	defense_reduction = amount
+	defense_reduction_timer = duration
+
+
+func is_stunned() -> bool:
+	return stun_timer > 0
+
+
 func _update_ui_bars() -> void:
 	if hp_bar:
 		hp_bar.value = hp
@@ -183,7 +277,7 @@ func _process_idle(_delta: float) -> void:
 func _process_walk(delta: float) -> void:
 	if target:
 		var direction = sign(target.global_position.x - global_position.x)
-		var speed = base_move_speed * stats.get_attack_speed_multiplier()
+		var speed = base_move_speed * stats.get_attack_speed_multiplier() * get_speed_multiplier()
 		velocity.x = direction * speed
 		facing_right = direction > 0
 		_update_facing()
@@ -344,7 +438,16 @@ func _update_visual_for_state() -> void:
 
 
 func can_act() -> bool:
+	if is_stunned():
+		return false
 	return current_state in [State.IDLE, State.WALK]
+
+
+func get_speed_multiplier() -> float:
+	# Apply slow effect if active
+	if slow_amount > 0:
+		return 1.0 - slow_amount
+	return 1.0
 
 
 func _update_stick_figure_pose() -> void:
@@ -435,6 +538,10 @@ func calculate_damage() -> float:
 	if current_move:
 		base_damage *= current_move.damage_multiplier
 
+		# Handle Wild affix (variable damage 0.7x to 1.5x)
+		if current_move.quality_affix == MoveClass.QualityAffix.WILD:
+			base_damage *= randf_range(0.7, 1.5)
+
 	# Apply combo bonus (10% per combo hit, up to 50%)
 	var combo_bonus = 1.0 + min(combo_count * 0.1, 0.5)
 	base_damage *= combo_bonus
@@ -442,8 +549,11 @@ func calculate_damage() -> float:
 	# Apply low HP bonus (willpower)
 	base_damage *= stats.get_low_hp_bonus(get_hp_ratio())
 
-	# Check for critical hit
-	if randf() < stats.get_crit_chance():
+	# Check for critical hit (with Precise affix bonus)
+	var crit_chance = stats.get_crit_chance()
+	if current_move and current_move.crit_chance_bonus > 0:
+		crit_chance += current_move.crit_chance_bonus
+	if randf() < crit_chance:
 		base_damage *= 1.5
 		# TODO: Emit crit event for visual feedback
 
@@ -458,9 +568,13 @@ func take_damage(damage: float, attacker: FighterController) -> void:
 
 	# Check for block
 	if current_state == State.DEFEND:
+		# Check for Guard Crush affix (double damage to blocking)
+		if attacker.current_move and attacker.current_move.effect_affix == MoveClass.EffectAffix.GUARD_CRUSH:
+			damage *= 2.0
+
 		# Defense reduces damage based on VIT
-		var defense_reduction = 0.7 + stats.get_defense_multiplier()
-		damage *= (1.0 - defense_reduction)
+		var block_reduction = 0.7 + stats.get_defense_multiplier()
+		damage *= (1.0 - block_reduction)
 		EventBus.fighter_blocked.emit(self, attacker)
 		# Still take chip damage but don't get staggered
 		var old_hp = hp
@@ -470,8 +584,10 @@ func take_damage(damage: float, attacker: FighterController) -> void:
 			EventBus.fighter_defeated.emit(self)
 		return
 
-	# Apply defense from VIT
-	damage *= (1.0 - stats.get_defense_multiplier())
+	# Apply defense from VIT (reduced by armor break)
+	var effective_defense = stats.get_defense_multiplier() - defense_reduction
+	effective_defense = max(0, effective_defense)
+	damage *= (1.0 - effective_defense)
 
 	var old_hp = hp
 	hp = max(0, hp - damage)
@@ -529,6 +645,44 @@ func _on_hitbox_area_entered(area: Area2D) -> void:
 	if other_fighter is FighterController and other_fighter != self:
 		var damage = calculate_damage()
 		other_fighter.take_damage(damage, self)
+
+		# Apply move affix effects
+		if current_move:
+			_apply_affix_effects(other_fighter, damage)
+
 		# Disable hitbox after hit
 		if hitbox:
 			hitbox.monitoring = false
+
+
+func _apply_affix_effects(target: FighterController, damage: float) -> void:
+	if not current_move:
+		return
+
+	# Element affixes
+	match current_move.element_affix:
+		MoveClass.ElementAffix.FIRE:
+			if current_move.burn_damage > 0:
+				target.apply_burn(current_move.burn_damage)
+		MoveClass.ElementAffix.ICE:
+			if current_move.slow_amount > 0:
+				target.apply_slow(current_move.slow_amount)
+		MoveClass.ElementAffix.LIGHTNING:
+			if current_move.stun_chance > 0 and randf() < current_move.stun_chance:
+				target.apply_stun(0.4)
+
+	# Effect affixes
+	match current_move.effect_affix:
+		MoveClass.EffectAffix.STUN:
+			if current_move.stun_chance > 0 and randf() < current_move.stun_chance:
+				target.apply_stun(0.5)
+		MoveClass.EffectAffix.BLEED:
+			if current_move.bleed_damage > 0:
+				target.apply_bleed(current_move.bleed_damage)
+		MoveClass.EffectAffix.DRAIN:
+			if current_move.drain_percent > 0:
+				var heal_amount = damage * current_move.drain_percent
+				hp = min(max_hp, hp + heal_amount)
+		MoveClass.EffectAffix.ARMOR_BREAK:
+			if current_move.armor_break_amount > 0:
+				target.apply_defense_reduction(current_move.armor_break_amount)

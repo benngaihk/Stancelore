@@ -142,6 +142,12 @@ func is_node_visited(node_id: int) -> bool:
 	return visited_node_ids.has(node_id)
 
 
+# Alias for convenience
+var visited_nodes: Array:
+	get:
+		return visited_node_ids
+
+
 func can_move_to_node(node_id: int) -> bool:
 	# Find current node
 	var current_node = null

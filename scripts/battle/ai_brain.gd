@@ -191,8 +191,11 @@ func _weighted_random_select(probs: Dictionary) -> DecisionTable.Action:
 
 
 func _execute_action(action: DecisionTable.Action, distance: float) -> void:
-	# Check if in defensive stance (high evade modifier means defensive)
-	var is_defensive = coach_modifiers.get(DecisionTable.Action.EVADE, 1.0) > 1.2
+	# Check stance from coach modifiers
+	var is_evasive = coach_modifiers.get(DecisionTable.Action.EVADE, 1.0) > 2.5
+	var is_pressure = coach_modifiers.get(DecisionTable.Action.IDLE, 1.0) < 0.3
+	var is_counter = coach_modifiers.get(DecisionTable.Action.COUNTER, 1.0) > 3.0
+	var is_defensive = coach_modifiers.get(DecisionTable.Action.DEFEND, 1.0) > 2.0
 
 	match action:
 		DecisionTable.Action.ATTACK:
@@ -209,10 +212,27 @@ func _execute_action(action: DecisionTable.Action, distance: float) -> void:
 		DecisionTable.Action.EVADE:
 			fighter.do_evade()  # Evade moves backward
 		DecisionTable.Action.COUNTER:
+			# Counter stance: defend but prepare to attack immediately
 			fighter.do_defend()
+			# Note: Counter attack logic handled in fighter_controller when hit while defending
 		DecisionTable.Action.IDLE:
-			if is_defensive and distance < 60:
-				# In defensive mode at close range, back away
+			if is_evasive:
+				# Evasive: Keep distance, back away when close
+				if distance < 60:
+					fighter.do_evade()
+				# Stay away
+			elif is_pressure:
+				# Pressure: Always move toward enemy
+				if distance > 30:
+					fighter.do_walk()
+			elif is_counter:
+				# Counter stance: Stay at mid range, ready to react
+				if distance > 60:
+					fighter.do_walk()
+				elif distance < 35:
+					fighter.do_evade()
+			elif is_defensive and distance < 60:
+				# Defensive: Back away when close
 				fighter.do_evade()
 			elif distance > 50:
 				fighter.do_walk()
@@ -291,6 +311,7 @@ func _on_coach_instruction(instruction: String) -> void:
 
 	match instruction:
 		"aggressive":
+			# 猛攻: All-out attack, high risk high reward
 			coach_modifiers = {
 				DecisionTable.Action.ATTACK: 2.5,
 				DecisionTable.Action.DEFEND: 0.2,
@@ -299,6 +320,7 @@ func _on_coach_instruction(instruction: String) -> void:
 				DecisionTable.Action.IDLE: 0.3
 			}
 		"balanced":
+			# 均衡: No modifiers, base behavior
 			coach_modifiers = {
 				DecisionTable.Action.ATTACK: 1.0,
 				DecisionTable.Action.DEFEND: 1.0,
@@ -307,12 +329,40 @@ func _on_coach_instruction(instruction: String) -> void:
 				DecisionTable.Action.IDLE: 1.0
 			}
 		"defensive":
+			# 防守: Focus on blocking, minimal attacks
 			coach_modifiers = {
 				DecisionTable.Action.ATTACK: 0.2,
 				DecisionTable.Action.DEFEND: 2.5,
 				DecisionTable.Action.EVADE: 2.0,
 				DecisionTable.Action.COUNTER: 0.5,
 				DecisionTable.Action.IDLE: 2.0
+			}
+		"evasive":
+			# 回避: Focus on dodging, keep distance
+			coach_modifiers = {
+				DecisionTable.Action.ATTACK: 0.3,
+				DecisionTable.Action.DEFEND: 0.5,
+				DecisionTable.Action.EVADE: 3.0,
+				DecisionTable.Action.COUNTER: 0.3,
+				DecisionTable.Action.IDLE: 1.5
+			}
+		"counter":
+			# 反击: Wait for enemy attack, then counter
+			coach_modifiers = {
+				DecisionTable.Action.ATTACK: 0.5,
+				DecisionTable.Action.DEFEND: 1.8,
+				DecisionTable.Action.EVADE: 1.0,
+				DecisionTable.Action.COUNTER: 3.5,
+				DecisionTable.Action.IDLE: 1.2
+			}
+		"pressure":
+			# 压制: Stay close, harass with quick attacks
+			coach_modifiers = {
+				DecisionTable.Action.ATTACK: 1.8,
+				DecisionTable.Action.DEFEND: 0.8,
+				DecisionTable.Action.EVADE: 0.5,
+				DecisionTable.Action.COUNTER: 1.0,
+				DecisionTable.Action.IDLE: 0.2
 			}
 
 	print("[AIBrain] Coach instruction applied: ", instruction)

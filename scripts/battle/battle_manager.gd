@@ -2,6 +2,7 @@ extends Node
 ## BattleManager - Controls battle flow, camera effects, and win/lose conditions
 
 const FighterStatsScript = preload("res://scripts/battle/fighter_stats.gd")
+const MoveLearnerScript = preload("res://scripts/battle/move_learner.gd")
 
 var player_fighter: FighterController = null
 var enemy_fighter: FighterController = null
@@ -29,6 +30,9 @@ var max_combo_achieved: int = 0
 var countdown_label: Label = null
 var is_countdown_active: bool = false
 
+# Move learner
+var move_learner: MoveLearner = null
+
 
 func _ready() -> void:
 	# Wait one frame for scene to be fully ready
@@ -48,6 +52,14 @@ func _initialize_battle() -> void:
 	# Check if we're in a roguelike run
 	var run = RunManager.get_current_run()
 	is_run_battle = run != null and run.is_run_active
+
+	# Set up move learner for run battles
+	if is_run_battle:
+		move_learner = MoveLearnerScript.new()
+		add_child(move_learner)
+		move_learner.reset_for_battle()
+		if player_fighter:
+			move_learner.set_player_fighter(player_fighter)
 
 	# Set up fighter stats
 	if is_run_battle:
@@ -242,8 +254,8 @@ func _show_result(winner: FighterController) -> void:
 	var result_container = VBoxContainer.new()
 	result_container.name = "ResultContainer"
 	result_container.set_anchors_preset(Control.PRESET_CENTER)
-	result_container.position = Vector2(192 - 80, 108 - 50)
-	result_container.size = Vector2(160, 100)
+	result_container.position = Vector2(192 - 80, 108 - 60)
+	result_container.size = Vector2(160, 120)
 
 	# Result label
 	var result_label = Label.new()
@@ -286,11 +298,35 @@ func _show_result(winner: FighterController) -> void:
 			result_container.add_child(hp_bonus_label)
 
 		if max_combo_achieved >= 3:
-			var combo_label = Label.new()
-			combo_label.text = "Max Combo: " + str(max_combo_achieved)
-			combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			combo_label.modulate = Color(0.8, 0.8, 0.8)
-			result_container.add_child(combo_label)
+			var max_combo_label = Label.new()
+			max_combo_label.text = "Max Combo: " + str(max_combo_achieved)
+			max_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			max_combo_label.modulate = Color(0.8, 0.8, 0.8)
+			result_container.add_child(max_combo_label)
+
+		# Show learned moves
+		if move_learner and move_learner.get_pending_moves().size() > 0:
+			var learned_header = Label.new()
+			learned_header.text = "--- Moves Learned! ---"
+			learned_header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			learned_header.add_theme_color_override("font_color", Color.MAGENTA)
+			result_container.add_child(learned_header)
+
+			for move_data in move_learner.get_pending_moves():
+				var move = move_data["move"]
+				var reason = move_data["reason"]
+
+				var move_label = Label.new()
+				move_label.text = move.move_name
+				move_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				if move.has_affix():
+					move_label.add_theme_color_override("font_color", move.color_tint)
+				else:
+					move_label.add_theme_color_override("font_color", Color.LIME_GREEN)
+				result_container.add_child(move_label)
+
+				# Auto-learn moves
+				move_learner.apply_pending_move(move_data)
 
 	ui.add_child(result_container)
 
