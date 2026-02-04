@@ -1,9 +1,11 @@
-[gd_scene load_steps=8 format=3 uid="uid://battlescene001"]
+[gd_scene load_steps=10 format=3 uid="uid://battlescene001"]
 
 [ext_resource type="Script" path="res://scripts/battle/fighter_controller.gd" id="1_fighter"]
 [ext_resource type="Script" path="res://scripts/battle/ai_brain.gd" id="2_aibrain"]
 [ext_resource type="Script" path="res://scripts/battle/coach_system.gd" id="3_coach"]
 [ext_resource type="Script" path="res://scripts/battle/battle_manager.gd" id="4_battle_manager"]
+[ext_resource type="Script" path="res://scripts/battle/stick_figure.gd" id="5_stick"]
+[ext_resource type="Script" path="res://scripts/ui/demo_settings.gd" id="6_demo_settings"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
 size = Vector2(16, 24)
@@ -49,11 +51,18 @@ base_move_speed = 80.0
 shape = SubResource("RectangleShape2D_body")
 
 [node name="Visual" type="ColorRect" parent="PlayerFighter"]
+visible = false
 offset_left = -8.0
 offset_top = -24.0
 offset_right = 8.0
 offset_bottom = 0.0
 color = Color(0.2, 0.6, 0.9, 1)
+
+[node name="StickFigure" type="Node2D" parent="PlayerFighter"]
+script = ExtResource("5_stick")
+body_color = Color(0.2, 0.6, 0.9, 1)
+head_color = Color(0.3, 0.7, 1.0, 1)
+line_width = 2.0
 
 [node name="Hitbox" type="Area2D" parent="PlayerFighter"]
 collision_layer = 4
@@ -92,11 +101,19 @@ base_move_speed = 75.0
 shape = SubResource("RectangleShape2D_body")
 
 [node name="Visual" type="ColorRect" parent="EnemyFighter"]
+visible = false
 offset_left = -8.0
 offset_top = -24.0
 offset_right = 8.0
 offset_bottom = 0.0
 color = Color(0.9, 0.3, 0.2, 1)
+
+[node name="StickFigure" type="Node2D" parent="EnemyFighter"]
+scale = Vector2(-1, 1)
+script = ExtResource("5_stick")
+body_color = Color(0.9, 0.3, 0.2, 1)
+head_color = Color(1.0, 0.4, 0.3, 1)
+line_width = 2.0
 
 [node name="Hitbox" type="Area2D" parent="EnemyFighter"]
 collision_layer = 4
@@ -199,12 +216,39 @@ offset_bottom = 80.0
 text = ""
 horizontal_alignment = 1
 
+[node name="PlayerMoveLabel" type="Label" parent="UI/BattleUI"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 48.0
+offset_right = 120.0
+offset_bottom = 62.0
+text = ""
+horizontal_alignment = 1
+
+[node name="EnemyMoveLabel" type="Label" parent="UI/BattleUI"]
+layout_mode = 0
+offset_left = 264.0
+offset_top = 48.0
+offset_right = 374.0
+offset_bottom = 62.0
+text = ""
+horizontal_alignment = 1
+
+[node name="ActionLog" type="Label" parent="UI/BattleUI"]
+layout_mode = 0
+offset_left = 140.0
+offset_top = 80.0
+offset_right = 244.0
+offset_bottom = 100.0
+text = ""
+horizontal_alignment = 1
+
 [node name="CoachSystem" type="Control" parent="UI/BattleUI"]
 layout_mode = 0
-offset_left = 120.0
-offset_top = 150.0
-offset_right = 264.0
-offset_bottom = 212.0
+offset_left = 100.0
+offset_top = 140.0
+offset_right = 284.0
+offset_bottom = 216.0
 script = ExtResource("3_coach")
 cooldown_duration = 5.0
 
@@ -215,35 +259,57 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 2
 
 [node name="InstructionLabel" type="Label" parent="UI/BattleUI/CoachSystem/VBoxContainer"]
-custom_minimum_size = Vector2(0, 16)
+custom_minimum_size = Vector2(0, 14)
 layout_mode = 2
 text = "BALANCED"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="HBoxContainer" type="HBoxContainer" parent="UI/BattleUI/CoachSystem/VBoxContainer"]
+[node name="Row1" type="HBoxContainer" parent="UI/BattleUI/CoachSystem/VBoxContainer"]
 layout_mode = 2
 alignment = 1
+theme_override_constants/separation = 2
 
-[node name="AggressiveBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/HBoxContainer"]
-custom_minimum_size = Vector2(40, 20)
+[node name="AggressiveBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/Row1"]
+custom_minimum_size = Vector2(56, 18)
 layout_mode = 2
 text = "1:ATK"
 
-[node name="BalancedBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/HBoxContainer"]
-custom_minimum_size = Vector2(40, 20)
+[node name="BalancedBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/Row1"]
+custom_minimum_size = Vector2(56, 18)
 layout_mode = 2
 text = "2:BAL"
 
-[node name="DefensiveBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/HBoxContainer"]
-custom_minimum_size = Vector2(40, 20)
+[node name="DefensiveBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/Row1"]
+custom_minimum_size = Vector2(56, 18)
 layout_mode = 2
 text = "3:DEF"
 
+[node name="Row2" type="HBoxContainer" parent="UI/BattleUI/CoachSystem/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 2
+
+[node name="EvasiveBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/Row2"]
+custom_minimum_size = Vector2(56, 18)
+layout_mode = 2
+text = "4:EVD"
+
+[node name="CounterBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/Row2"]
+custom_minimum_size = Vector2(56, 18)
+layout_mode = 2
+text = "5:CTR"
+
+[node name="PressureBtn" type="Button" parent="UI/BattleUI/CoachSystem/VBoxContainer/Row2"]
+custom_minimum_size = Vector2(56, 18)
+layout_mode = 2
+text = "6:PRS"
+
 [node name="CooldownBar" type="ProgressBar" parent="UI/BattleUI/CoachSystem/VBoxContainer"]
-custom_minimum_size = Vector2(0, 10)
+custom_minimum_size = Vector2(0, 8)
 layout_mode = 2
 max_value = 5.0
 value = 0.0
@@ -251,3 +317,11 @@ show_percentage = false
 
 [node name="BattleManager" type="Node" parent="."]
 script = ExtResource("4_battle_manager")
+
+[node name="DemoSettings" type="Control" parent="UI/BattleUI"]
+layout_mode = 0
+offset_left = 130.0
+offset_top = 5.0
+offset_right = 254.0
+offset_bottom = 25.0
+script = ExtResource("6_demo_settings")

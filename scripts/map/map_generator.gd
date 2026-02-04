@@ -13,11 +13,10 @@ var max_connections: int = 2
 
 # Node type weights by row progress (0.0 = start, 1.0 = boss)
 var type_weights: Dictionary = {
-	MapNodeScript.NodeType.BATTLE: 40,
-	MapNodeScript.NodeType.ELITE: 10,
-	MapNodeScript.NodeType.TRAINING: 15,
+	MapNodeScript.NodeType.BATTLE: 45,
+	MapNodeScript.NodeType.ELITE: 12,
+	MapNodeScript.NodeType.TRAINING: 18,
 	MapNodeScript.NodeType.EVENT: 15,
-	MapNodeScript.NodeType.SHOP: 10,
 	MapNodeScript.NodeType.REST: 10,
 }
 
@@ -96,9 +95,9 @@ func _pick_node_type(row: int) -> int:
 	if progress > 0.5:
 		adjusted_weights[MapNodeScript.NodeType.ELITE] *= 1.5
 
-	# Shops more common in middle
-	if progress > 0.3 and progress < 0.7:
-		adjusted_weights[MapNodeScript.NodeType.SHOP] *= 1.5
+	# More training early on
+	if progress < 0.4:
+		adjusted_weights[MapNodeScript.NodeType.TRAINING] *= 1.3
 
 	# Rest stops more valuable later
 	if progress > 0.6:

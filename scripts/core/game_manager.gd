@@ -27,6 +27,13 @@ var enemy_fighter: Node = null
 # Hit stop system
 var _in_hit_stop: bool = false
 
+# Demo settings (persists across scene reloads)
+var demo_settings_active: bool = false
+var demo_player_stats: Resource = null
+var demo_enemy_stats: Resource = null
+var demo_player_moves: Array = []
+var demo_enemy_moves: Array = []
+
 
 func _ready() -> void:
 	print("[GameManager] Initialized")

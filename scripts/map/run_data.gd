@@ -51,6 +51,61 @@ func start_new_run(stats: Resource, name: String = "Fighter") -> void:
 	is_run_active = true
 	temp_modifiers.clear()
 
+	# Initialize default moves
+	_setup_default_moves()
+
+
+func _setup_default_moves() -> void:
+	var MoveLibrary = preload("res://scripts/battle/move_library.gd")
+
+	# Get starter moves
+	var starters = MoveLibrary.get_starter_moves()
+
+	# Add basic moves to available pool
+	available_moves = starters.duplicate()
+
+	# Equip initial moves (max 4)
+	equipped_moves = starters.duplicate()
+
+
+func learn_move(move: Resource) -> bool:
+	# Check if already known
+	for m in available_moves:
+		if m.move_name == move.move_name:
+			return false
+	available_moves.append(move)
+	return true
+
+
+func equip_move(move: Resource) -> bool:
+	# Max 4 equipped moves
+	if equipped_moves.size() >= 4:
+		return false
+
+	# Check if already equipped
+	for m in equipped_moves:
+		if m.move_name == move.move_name:
+			return false
+
+	equipped_moves.append(move)
+	return true
+
+
+func unequip_move(move_name: String) -> bool:
+	for i in range(equipped_moves.size()):
+		if equipped_moves[i].move_name == move_name:
+			equipped_moves.remove_at(i)
+			return true
+	return false
+
+
+func get_equipped_moves() -> Array:
+	return equipped_moves
+
+
+func get_available_moves() -> Array:
+	return available_moves
+
 
 func heal(amount: float) -> float:
 	var old_hp = current_hp
@@ -85,6 +140,12 @@ func visit_node(node_id: int) -> void:
 
 func is_node_visited(node_id: int) -> bool:
 	return visited_node_ids.has(node_id)
+
+
+# Alias for convenience
+var visited_nodes: Array:
+	get:
+		return visited_node_ids
 
 
 func can_move_to_node(node_id: int) -> bool:
