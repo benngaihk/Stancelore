@@ -54,7 +54,8 @@ var target_pose: Dictionary = {}
 var pose_lerp_speed: float = 15.0
 
 # Presets
-enum Pose { IDLE, WALK_1, WALK_2, JAB, STRAIGHT, HOOK, UPPERCUT, DEFEND, EVADE, HIT, RECOVERY }
+enum Pose { IDLE, WALK_1, WALK_2, JAB, STRAIGHT, HOOK, UPPERCUT, DEFEND, EVADE, HIT, RECOVERY,
+			FRONT_KICK, LOW_KICK, ROUNDHOUSE, KNEE_STRIKE, ELBOW, BACKFIST }
 
 
 func _ready() -> void:
@@ -365,6 +366,78 @@ func _get_pose_data(pose: Pose) -> Dictionary:
 				"right_upper_leg": -0.1,
 				"right_lower_leg": 0.0
 			}
+		Pose.FRONT_KICK:
+			return {
+				"torso": -0.1,
+				"left_upper_arm": 0.4,
+				"left_lower_arm": 0.3,
+				"right_upper_arm": -0.4,
+				"right_lower_arm": -0.3,
+				"left_upper_leg": 0.2,
+				"left_lower_leg": 0.1,
+				"right_upper_leg": -1.4,  # Kick forward
+				"right_lower_leg": 0.2
+			}
+		Pose.LOW_KICK:
+			return {
+				"torso": 0.2,
+				"left_upper_arm": 0.5,
+				"left_lower_arm": 0.3,
+				"right_upper_arm": -0.5,
+				"right_lower_arm": -0.3,
+				"left_upper_leg": 0.1,
+				"left_lower_leg": 0.0,
+				"right_upper_leg": -0.8,  # Low kick angle
+				"right_lower_leg": -0.3
+			}
+		Pose.ROUNDHOUSE:
+			return {
+				"torso": 0.4,
+				"left_upper_arm": 0.6,
+				"left_lower_arm": 0.4,
+				"right_upper_arm": -0.6,
+				"right_lower_arm": -0.4,
+				"left_upper_leg": 0.3,
+				"left_lower_leg": 0.2,
+				"right_upper_leg": -1.2,  # High roundhouse
+				"right_lower_leg": -0.8
+			}
+		Pose.KNEE_STRIKE:
+			return {
+				"torso": 0.1,
+				"left_upper_arm": 0.3,
+				"left_lower_arm": 0.2,
+				"right_upper_arm": -0.3,
+				"right_lower_arm": -0.2,
+				"left_upper_leg": 0.1,
+				"left_lower_leg": 0.0,
+				"right_upper_leg": -1.0,  # Knee up
+				"right_lower_leg": -1.5   # Folded leg
+			}
+		Pose.ELBOW:
+			return {
+				"torso": 0.3,
+				"left_upper_arm": 0.4,
+				"left_lower_arm": 0.3,
+				"right_upper_arm": -0.8,  # Elbow angle
+				"right_lower_arm": -1.8,  # Tight fold
+				"left_upper_leg": 0.2,
+				"left_lower_leg": 0.0,
+				"right_upper_leg": -0.1,
+				"right_lower_leg": 0.0
+			}
+		Pose.BACKFIST:
+			return {
+				"torso": -0.3,  # Twist back
+				"left_upper_arm": 0.8,
+				"left_lower_arm": 0.5,
+				"right_upper_arm": 1.2,   # Backswing
+				"right_lower_arm": 0.8,
+				"left_upper_leg": 0.2,
+				"left_lower_leg": 0.0,
+				"right_upper_leg": -0.2,
+				"right_lower_leg": 0.0
+			}
 		_:
 			return {}
 
@@ -383,6 +456,26 @@ func get_pose_for_move(move_name: String) -> Pose:
 		"Body Blow":
 			return Pose.STRAIGHT
 		"Low Kick":
-			return Pose.WALK_1  # Use walk pose for kick
+			return Pose.LOW_KICK
+		"Front Kick":
+			return Pose.FRONT_KICK
+		"Roundhouse":
+			return Pose.ROUNDHOUSE
+		"Knee Strike":
+			return Pose.KNEE_STRIKE
+		"Elbow":
+			return Pose.ELBOW
+		"Backfist":
+			return Pose.BACKFIST
+		"Flurry":
+			return Pose.JAB
+		"Counter":
+			return Pose.STRAIGHT
+		"Haymaker":
+			return Pose.HOOK
+		"Dempsey Roll":
+			return Pose.HOOK
+		"Gazelle Punch":
+			return Pose.UPPERCUT
 		_:
 			return Pose.JAB  # Default attack pose

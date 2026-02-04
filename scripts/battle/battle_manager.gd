@@ -25,6 +25,10 @@ var displayed_combo: int = 0
 # Battle performance tracking
 var max_combo_achieved: int = 0
 
+# Countdown
+var countdown_label: Label = null
+var is_countdown_active: bool = false
+
 
 func _ready() -> void:
 	# Wait one frame for scene to be fully ready
@@ -59,6 +63,9 @@ func _initialize_battle() -> void:
 		# Get UI bars
 		_setup_ui_bars()
 
+		# Start countdown before battle
+		await _do_countdown()
+
 		# Start battle
 		GameManager.start_battle(player_fighter, enemy_fighter)
 
@@ -83,9 +90,14 @@ func _setup_run_battle(run: Resource) -> void:
 
 	# Create enemy based on difficulty
 	if enemy_fighter:
-		var enemy_stats = RunManager.create_enemy_stats(RunManager.pending_battle_difficulty)
-		enemy_fighter.stats = enemy_stats
+		var enemy_data = RunManager.create_enemy_with_type(RunManager.pending_battle_difficulty)
+		enemy_fighter.stats = enemy_data.stats
+		enemy_fighter.fighter_name = enemy_data.name
 		enemy_fighter._initialize_stats()
+
+		# Set enemy moves
+		if enemy_fighter.ai_brain:
+			enemy_fighter.ai_brain.set_equipped_moves(enemy_data.moves)
 
 		# Elite/Boss bonus
 		if RunManager.pending_battle_is_elite:
@@ -94,6 +106,13 @@ func _setup_run_battle(run: Resource) -> void:
 		if RunManager.pending_battle_is_boss:
 			enemy_fighter.max_hp *= 2.0
 			enemy_fighter.hp = enemy_fighter.max_hp
+
+		# Update enemy name label
+		var ui = get_parent().get_node_or_null("UI/BattleUI")
+		if ui:
+			var enemy_label = ui.get_node_or_null("EnemyLabel")
+			if enemy_label:
+				enemy_label.text = enemy_data.name
 
 
 func _setup_standalone_battle() -> void:
@@ -281,6 +300,49 @@ func _show_result(winner: FighterController) -> void:
 
 func _restart_battle() -> void:
 	get_tree().reload_current_scene()
+
+
+func _do_countdown() -> void:
+	is_countdown_active = true
+
+	var ui = get_parent().get_node_or_null("UI/BattleUI")
+	if not ui:
+		is_countdown_active = false
+		return
+
+	# Create countdown label
+	countdown_label = Label.new()
+	countdown_label.name = "CountdownLabel"
+	countdown_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	countdown_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	countdown_label.set_anchors_preset(Control.PRESET_CENTER)
+	countdown_label.position = Vector2(192 - 30, 108 - 30)
+	countdown_label.size = Vector2(60, 60)
+	countdown_label.add_theme_font_size_override("font_size", 32)
+	ui.add_child(countdown_label)
+
+	# Countdown sequence
+	var countdown_texts = ["3", "2", "1", "FIGHT!"]
+	var countdown_colors = [Color.WHITE, Color.YELLOW, Color.ORANGE, Color.GREEN]
+
+	for i in range(countdown_texts.size()):
+		countdown_label.text = countdown_texts[i]
+		countdown_label.add_theme_color_override("font_color", countdown_colors[i])
+
+		# Scale animation
+		var tween = create_tween()
+		countdown_label.scale = Vector2(1.5, 1.5)
+		tween.tween_property(countdown_label, "scale", Vector2(1.0, 1.0), 0.3)
+
+		if i < countdown_texts.size() - 1:
+			await get_tree().create_timer(0.8).timeout
+		else:
+			await get_tree().create_timer(0.5).timeout
+
+	# Remove countdown label
+	countdown_label.queue_free()
+	countdown_label = null
+	is_countdown_active = false
 
 
 func _on_fighter_attacked(attacker: FighterController, _target: FighterController) -> void:

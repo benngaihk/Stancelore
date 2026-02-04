@@ -323,3 +323,67 @@ func get_random_enemy_name(difficulty: int) -> String:
 	elif difficulty >= 4:
 		name = "Veteran " + name
 	return name
+
+
+# Get moves for enemy based on type and difficulty
+func get_enemy_moves(enemy_type: int, difficulty: int) -> Array:
+	var MoveClass = preload("res://scripts/battle/move.gd")
+	var moves = []
+
+	# Base moves everyone gets
+	moves.append(MoveClass.create_jab())
+	moves.append(MoveClass.create_straight())
+
+	# Type-specific moves
+	match enemy_type:
+		EnemyType.BALANCED:
+			moves.append(MoveClass.create_hook())
+			if difficulty >= 3:
+				moves.append(MoveClass.create_body_blow())
+		EnemyType.AGGRESSIVE:
+			moves.append(MoveClass.create_hook())
+			moves.append(MoveClass.create_uppercut())
+			if difficulty >= 4:
+				moves.append(MoveClass.create_flurry())
+		EnemyType.DEFENSIVE:
+			moves.append(MoveClass.create_body_blow())
+			if difficulty >= 3:
+				moves.append(MoveClass.create_counter_punch())
+		EnemyType.SPEEDY:
+			moves.append(MoveClass.create_low_kick())
+			moves.append(MoveClass.create_front_kick())
+			if difficulty >= 4:
+				moves.append(MoveClass.create_knee_strike())
+		EnemyType.HEAVY:
+			moves.append(MoveClass.create_hook())
+			moves.append(MoveClass.create_uppercut())
+			if difficulty >= 5:
+				moves.append(MoveClass.create_haymaker())
+		EnemyType.COUNTER:
+			moves.append(MoveClass.create_counter_punch())
+			moves.append(MoveClass.create_elbow_strike())
+			if difficulty >= 4:
+				moves.append(MoveClass.create_spinning_backfist())
+
+	return moves
+
+
+# Current enemy type (set when creating enemy)
+var current_enemy_type: int = EnemyType.BALANCED
+
+
+func create_enemy_with_type(difficulty: int) -> Dictionary:
+	# Pick random enemy type
+	var enemy_type = randi() % EnemyType.size()
+	current_enemy_type = enemy_type
+
+	var stats = _create_enemy_by_type(enemy_type, difficulty)
+	var moves = get_enemy_moves(enemy_type, difficulty)
+	var name = get_random_enemy_name(difficulty)
+
+	return {
+		"stats": stats,
+		"moves": moves,
+		"name": name,
+		"type": enemy_type
+	}

@@ -14,6 +14,9 @@ static func get_basic_moves() -> Array:
 		MoveClass.create_uppercut(),
 		MoveClass.create_body_blow(),
 		MoveClass.create_low_kick(),
+		MoveClass.create_front_kick(),
+		MoveClass.create_knee_strike(),
+		MoveClass.create_elbow_strike(),
 	]
 
 
@@ -22,6 +25,9 @@ static func get_skill_moves() -> Array:
 	return [
 		MoveClass.create_flurry(),
 		MoveClass.create_counter_punch(),
+		MoveClass.create_roundhouse(),
+		MoveClass.create_spinning_backfist(),
+		MoveClass.create_gazelle_punch(),
 	]
 
 
@@ -29,6 +35,7 @@ static func get_skill_moves() -> Array:
 static func get_ultimate_moves() -> Array:
 	return [
 		MoveClass.create_haymaker(),
+		MoveClass.create_dempsey_roll(),
 	]
 
 

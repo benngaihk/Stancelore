@@ -213,3 +213,132 @@ static func create_haymaker() :
 	move.combo_ender = true
 	move.color_tint = Color(1.0, 0.3, 0.0)
 	return move
+
+
+# ===== Kick Moves =====
+
+static func create_front_kick():
+	var move = load("res://scripts/battle/move.gd").new()
+	move.move_name = "Front Kick"
+	move.move_type = MoveType.BASIC
+	move.description = "Straight kick to push back"
+	move.damage_multiplier = 1.0
+	move.stamina_cost = 12.0
+	move.hit_zone = HitZone.MID
+	move.range_modifier = 1.4
+	move.startup_multiplier = 1.0
+	move.recovery_multiplier = 1.1
+	move.knockback_force = 2.0  # High knockback
+	move.color_tint = Color(0.8, 1.0, 0.8)
+	return move
+
+
+static func create_roundhouse():
+	var move = load("res://scripts/battle/move.gd").new()
+	move.move_name = "Roundhouse"
+	move.move_type = MoveType.SKILL
+	move.description = "Powerful spinning kick"
+	move.damage_multiplier = 1.6
+	move.stamina_cost = 18.0
+	move.hit_zone = HitZone.HIGH
+	move.range_modifier = 1.3
+	move.startup_multiplier = 1.3
+	move.recovery_multiplier = 1.4
+	move.knockback_force = 2.5
+	move.hitstun_multiplier = 1.4
+	move.cooldown = 6.0
+	move.combo_ender = true
+	move.color_tint = Color(1.0, 0.8, 0.4)
+	return move
+
+
+static func create_knee_strike():
+	var move = load("res://scripts/battle/move.gd").new()
+	move.move_name = "Knee Strike"
+	move.move_type = MoveType.BASIC
+	move.description = "Close-range knee attack"
+	move.damage_multiplier = 1.2
+	move.stamina_cost = 11.0
+	move.hit_zone = HitZone.MID
+	move.range_modifier = 0.7  # Short range
+	move.startup_multiplier = 0.8
+	move.recovery_multiplier = 0.9
+	move.knockback_force = 1.0
+	move.hitstun_multiplier = 1.2
+	move.color_tint = Color(0.9, 0.8, 1.0)
+	return move
+
+
+static func create_spinning_backfist():
+	var move = load("res://scripts/battle/move.gd").new()
+	move.move_name = "Backfist"
+	move.move_type = MoveType.SKILL
+	move.description = "Spinning backfist strike"
+	move.damage_multiplier = 1.5
+	move.stamina_cost = 16.0
+	move.hit_zone = HitZone.HIGH
+	move.startup_multiplier = 1.1
+	move.recovery_multiplier = 1.2
+	move.knockback_force = 1.8
+	move.hitstun_multiplier = 1.3
+	move.cooldown = 5.0
+	move.color_tint = Color(0.8, 0.6, 1.0)
+	return move
+
+
+static func create_elbow_strike():
+	var move = load("res://scripts/battle/move.gd").new()
+	move.move_name = "Elbow"
+	move.move_type = MoveType.BASIC
+	move.description = "Close-range elbow strike"
+	move.damage_multiplier = 1.3
+	move.stamina_cost = 13.0
+	move.hit_zone = HitZone.HIGH
+	move.range_modifier = 0.6  # Very short range
+	move.startup_multiplier = 0.7
+	move.recovery_multiplier = 0.8
+	move.knockback_force = 0.8
+	move.hitstun_multiplier = 1.4
+	move.combo_starter = true
+	move.color_tint = Color(1.0, 0.7, 0.7)
+	return move
+
+
+# ===== Special Moves =====
+
+static func create_dempsey_roll():
+	var move = load("res://scripts/battle/move.gd").new()
+	move.move_name = "Dempsey Roll"
+	move.move_type = MoveType.ULTIMATE
+	move.description = "Weaving combo of hooks"
+	move.damage_multiplier = 2.5
+	move.stamina_cost = 35.0
+	move.hit_zone = HitZone.MID
+	move.startup_multiplier = 1.5
+	move.active_multiplier = 2.5
+	move.recovery_multiplier = 1.8
+	move.knockback_force = 2.0
+	move.hitstun_multiplier = 1.5
+	move.cooldown = 15.0
+	move.required_combo_count = 2
+	move.can_combo = false
+	move.color_tint = Color(1.0, 0.4, 0.2)
+	return move
+
+
+static func create_gazelle_punch():
+	var move = load("res://scripts/battle/move.gd").new()
+	move.move_name = "Gazelle Punch"
+	move.move_type = MoveType.SKILL
+	move.description = "Leaping uppercut"
+	move.damage_multiplier = 1.7
+	move.stamina_cost = 22.0
+	move.hit_zone = HitZone.HIGH
+	move.startup_multiplier = 1.2
+	move.recovery_multiplier = 1.3
+	move.knockback_force = 2.2
+	move.hitstun_multiplier = 1.6
+	move.cooldown = 8.0
+	move.combo_ender = true
+	move.color_tint = Color(0.6, 0.8, 1.0)
+	return move
